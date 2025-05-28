@@ -23,14 +23,23 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     case 'new':
       variant = 'default';
       break;
-    case 'negotiation':
-      variant = 'warning';
+    case 'in_process':
+      variant = 'secondary';
+      break;
+    case 'qualified':
+      variant = 'success';
+      break;
+    case 'unqualified':
+      variant = 'error';
       break;
     case 'won':
       variant = 'success';
       break;
     case 'lost':
       variant = 'error';
+      break;
+    case 'negotiation':
+      variant = 'warning';
       break;
     case 'scheduled':
       variant = 'secondary';

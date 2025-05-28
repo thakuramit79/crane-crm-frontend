@@ -8,7 +8,9 @@ import {
   Phone,
   Mail,
   Upload,
-  Trash2
+  Trash2,
+  Building2,
+  Users
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Input } from '../components/common/Input';
@@ -18,8 +20,61 @@ import { TextArea } from '../components/common/TextArea';
 import { Modal } from '../components/common/Modal';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Toast } from '../components/common/Toast';
-import { Lead, LeadStatus } from '../types/lead';
+import { Lead, LeadStatus, Customer, Contact, Deal, DealStatus } from '../types/lead';
 import { getLeads, createLead, updateLeadStatus } from '../services/leadService';
+
+const LEAD_STATUS_OPTIONS = [
+  { value: 'new', label: 'New' },
+  { value: 'in_process', label: 'In Process' },
+  { value: 'qualified', label: 'Qualified' },
+  { value: 'unqualified', label: 'Unqualified' },
+  { value: 'won', label: 'Won' },
+  { value: 'lost', label: 'Lost' },
+];
+
+const DEAL_STATUS_OPTIONS = [
+  { value: 'qualification', label: 'Qualification' },
+  { value: 'proposal', label: 'Proposal/Quotation' },
+  { value: 'negotiation', label: 'Negotiation' },
+  { value: 'won', label: 'Won' },
+  { value: 'lost', label: 'Lost' },
+];
+
+const MOCK_CUSTOMERS: Customer[] = [
+  {
+    id: '1',
+    name: 'Acme Construction',
+    email: 'info@acme.com',
+    phone: '555-0123',
+    address: '123 Builder St, New York',
+  },
+  {
+    id: '2',
+    name: 'Metro Developers',
+    email: 'contact@metro.com',
+    phone: '555-0456',
+    address: '456 Developer Ave, Chicago',
+  },
+];
+
+const MOCK_CONTACTS: Contact[] = [
+  {
+    id: '1',
+    customerId: '1',
+    name: 'John Smith',
+    email: 'john@acme.com',
+    phone: '555-0124',
+    role: 'Project Manager',
+  },
+  {
+    id: '2',
+    customerId: '2',
+    name: 'Sarah Johnson',
+    email: 'sarah@metro.com',
+    phone: '555-0457',
+    role: 'Operations Director',
+  },
+];
 
 const ITEMS_PER_PAGE = 10;
 
@@ -39,8 +94,12 @@ export function LeadManagement() {
     description?: string;
     variant?: 'success' | 'error';
   }>({ show: false, title: '' });
-  
-  // Form state
+
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [isExistingCustomer, setIsExistingCustomer] = useState<boolean | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [selectedContactId, setSelectedContactId] = useState('');
+
   const [formData, setFormData] = useState({
     customerName: '',
     email: '',
@@ -50,15 +109,36 @@ export function LeadManagement() {
     notes: '',
     files: [] as File[],
   });
-  
+
+  const [newCustomerForm, setNewCustomerForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+  });
+
+  const [newContactForm, setNewContactForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+  });
+
+  const [dealForm, setDealForm] = useState({
+    status: 'qualification' as DealStatus,
+    value: '',
+    expectedCloseDate: '',
+    notes: '',
+  });
+
   useEffect(() => {
     fetchLeads();
   }, []);
-  
+
   useEffect(() => {
     filterLeads();
   }, [leads, searchTerm, statusFilter]);
-  
+
   const fetchLeads = async () => {
     try {
       const data = await getLeads();
@@ -70,11 +150,10 @@ export function LeadManagement() {
       setIsLoading(false);
     }
   };
-  
+
   const filterLeads = () => {
     let filtered = [...leads];
     
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(lead => 
         lead.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,7 +161,6 @@ export function LeadManagement() {
       );
     }
     
-    // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(lead => lead.status === statusFilter);
     }
@@ -90,7 +168,7 @@ export function LeadManagement() {
     setFilteredLeads(filtered);
     setCurrentPage(1);
   };
-  
+
   const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -100,7 +178,7 @@ export function LeadManagement() {
         serviceNeeded: formData.serviceNeeded,
         siteLocation: formData.siteLocation,
         status: 'new',
-        assignedTo: '1', // Mock assignment to first sales agent
+        assignedTo: '1',
         notes: formData.notes,
       });
       
@@ -113,7 +191,7 @@ export function LeadManagement() {
       showToast('Error creating lead', 'error');
     }
   };
-  
+
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     try {
       const updatedLead = await updateLeadStatus(leadId, newStatus);
@@ -123,6 +201,12 @@ export function LeadManagement() {
             lead.id === leadId ? updatedLead : lead
           )
         );
+        
+        if (newStatus === 'won') {
+          setSelectedLead(updatedLead);
+          setIsConvertModalOpen(true);
+        }
+        
         showToast('Lead status updated', 'success');
       }
     } catch (error) {
@@ -130,7 +214,7 @@ export function LeadManagement() {
       showToast('Error updating lead status', 'error');
     }
   };
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFormData(prev => ({
@@ -139,14 +223,14 @@ export function LeadManagement() {
       }));
     }
   };
-  
+
   const removeFile = (index: number) => {
     setFormData(prev => ({
       ...prev,
       files: prev.files.filter((_, i) => i !== index),
     }));
   };
-  
+
   const resetForm = () => {
     setFormData({
       customerName: '',
@@ -158,19 +242,77 @@ export function LeadManagement() {
       files: [],
     });
   };
-  
+
+  const handleConvertToDeal = async () => {
+    if (!selectedLead) return;
+
+    try {
+      let customerId = selectedCustomerId;
+      let contactId = selectedContactId;
+
+      if (!isExistingCustomer) {
+        customerId = Math.random().toString(36).substring(2, 9);
+        contactId = Math.random().toString(36).substring(2, 9);
+      }
+
+      const newDeal: Deal = {
+        id: Math.random().toString(36).substring(2, 9),
+        leadId: selectedLead.id,
+        customerId,
+        contactId,
+        status: dealForm.status,
+        value: parseFloat(dealForm.value),
+        expectedCloseDate: dealForm.expectedCloseDate,
+        notes: dealForm.notes,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      showToast('Deal created successfully', 'success');
+      setIsConvertModalOpen(false);
+      resetConversionForms();
+    } catch (error) {
+      showToast('Error creating deal', 'error');
+    }
+  };
+
+  const resetConversionForms = () => {
+    setIsExistingCustomer(null);
+    setSelectedCustomerId('');
+    setSelectedContactId('');
+    setNewCustomerForm({
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+    });
+    setNewContactForm({
+      name: '',
+      email: '',
+      phone: '',
+      role: '',
+    });
+    setDealForm({
+      status: 'qualification',
+      value: '',
+      expectedCloseDate: '',
+      notes: '',
+    });
+  };
+
   const showToast = (title: string, variant: 'success' | 'error' = 'success') => {
     setToast({ show: true, title, variant });
     setTimeout(() => setToast({ show: false, title: '' }), 3000);
   };
-  
-  // Pagination
+
   const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE);
   const paginatedLeads = filteredLeads.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-  
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -188,10 +330,7 @@ export function LeadManagement() {
           <Select
             options={[
               { value: 'all', label: 'All Status' },
-              { value: 'new', label: 'New' },
-              { value: 'negotiation', label: 'Negotiation' },
-              { value: 'won', label: 'Won' },
-              { value: 'lost', label: 'Lost' },
+              ...LEAD_STATUS_OPTIONS
             ]}
             value={statusFilter}
             onChange={(value) => setStatusFilter(value as LeadStatus | 'all')}
@@ -206,7 +345,7 @@ export function LeadManagement() {
           New Lead
         </Button>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Lead Pipeline</CardTitle>
@@ -263,7 +402,12 @@ export function LeadManagement() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <StatusBadge status={lead.status} />
+                          <Select
+                            options={LEAD_STATUS_OPTIONS}
+                            value={lead.status}
+                            onChange={(value) => handleStatusChange(lead.id, value as LeadStatus)}
+                            className="w-40"
+                          />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(lead.createdAt).toLocaleDateString()}
@@ -317,8 +461,7 @@ export function LeadManagement() {
           )}
         </CardContent>
       </Card>
-      
-      {/* Create Lead Modal */}
+
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => {
@@ -448,8 +591,7 @@ export function LeadManagement() {
           </div>
         </form>
       </Modal>
-      
-      {/* View Lead Modal */}
+
       <Modal
         isOpen={isViewModalOpen}
         onClose={() => {
@@ -481,12 +623,7 @@ export function LeadManagement() {
                 <h4 className="text-sm font-medium text-gray-500">Status</h4>
                 <div className="mt-1">
                   <Select
-                    options={[
-                      { value: 'new', label: 'New' },
-                      { value: 'negotiation', label: 'Negotiation' },
-                      { value: 'won', label: 'Won' },
-                      { value: 'lost', label: 'Lost' },
-                    ]}
+                    options={LEAD_STATUS_OPTIONS}
                     value={selectedLead.status}
                     onChange={(value) => handleStatusChange(selectedLead.id, value as LeadStatus)}
                   />
@@ -513,8 +650,184 @@ export function LeadManagement() {
           </div>
         )}
       </Modal>
-      
-      {/* Toast Notification */}
+
+      <Modal
+        isOpen={isConvertModalOpen}
+        onClose={() => {
+          setIsConvertModalOpen(false);
+          resetConversionForms();
+        }}
+        title="Convert Lead to Deal"
+        size="lg"
+      >
+        <div className="space-y-6">
+          {isExistingCustomer === null ? (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Is this for an existing customer?</h3>
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsExistingCustomer(true)}
+                >
+                  Yes, Existing Customer
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsExistingCustomer(false)}
+                >
+                  No, New Customer
+                </Button>
+              </div>
+            </div>
+          ) : isExistingCustomer ? (
+            <div className="space-y-4">
+              <Select
+                label="Select Customer"
+                options={MOCK_CUSTOMERS.map(customer => ({
+                  value: customer.id,
+                  label: customer.name,
+                }))}
+                value={selectedCustomerId}
+                onChange={setSelectedCustomerId}
+                required
+              />
+
+              {selectedCustomerId && (
+                <Select
+                  label="Select Contact"
+                  options={MOCK_CONTACTS
+                    .filter(contact => contact.customerId === selectedCustomerId)
+                    .map(contact => ({
+                      value: contact.id,
+                      label: contact.name,
+                    }))
+                  }
+                  value={selectedContactId}
+                  onChange={setSelectedContactId}
+                  required
+                />
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-700">Customer Information</h3>
+                <Input
+                  label="Company Name"
+                  value={newCustomerForm.name}
+                  onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+                <Input
+                  label="Company Email"
+                  type="email"
+                  value={newCustomerForm.email}
+                  onChange={(e) => setNewCustomerForm(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                />
+                <Input
+                  label="Company Phone"
+                  value={newCustomerForm.phone}
+                  onChange={(e) => setNewCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
+                  required
+                />
+                <Input
+                  label="Address"
+                  value={newCustomerForm.address}
+                  onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-700">Primary Contact</h3>
+                <Input
+                  label="Contact Name"
+                  value={newContactForm.name}
+                  onChange={(e) => setNewContactForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+                <Input
+                  label="Contact Email"
+                  type="email"
+                  value={newContactForm.email}
+                  onChange={(e) => setNewContactForm(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                />
+                <Input
+                  label="Contact Phone"
+                  value={newContactForm.phone}
+                  onChange={(e) => setNewContactForm(prev => ({ ...prev, phone: e.target.value }))}
+                  required
+                />
+                <Input
+                  label="Role"
+                  value={newContactForm.role}
+                  onChange={(e) => setNewContactForm(prev => ({ ...prev, role: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {(isExistingCustomer ? (selectedCustomerId && selectedContactId) : 
+            (newCustomerForm.name && newContactForm.name)) && (
+            <div className="space-y-4 pt-6 border-t">
+              <h3 className="text-sm font-medium text-gray-700">Deal Information</h3>
+              <Select
+                label="Deal Status"
+                options={DEAL_STATUS_OPTIONS}
+                value={dealForm.status}
+                onChange={(value) => setDealForm(prev => ({ ...prev, status: value as DealStatus }))}
+                required
+              />
+              <Input
+                label="Deal Value"
+                type="number"
+                value={dealForm.value}
+                onChange={(e) => setDealForm(prev => ({ ...prev, value: e.target.value }))}
+                required
+              />
+              <Input
+                label="Expected Close Date"
+                type="date"
+                value={dealForm.expectedCloseDate}
+                onChange={(e) => setDealForm(prev => ({ ...prev, expectedCloseDate: e.target.value }))}
+                required
+              />
+              <TextArea
+                label="Notes"
+                value={dealForm.notes}
+                onChange={(e) => setDealForm(prev => ({ ...prev, notes: e.target.value }))}
+                rows={3}
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsConvertModalOpen(false);
+                resetConversionForms();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConvertToDeal}
+              disabled={
+                isExistingCustomer
+                  ? !selectedCustomerId || !selectedContactId
+                  : !newCustomerForm.name || !newContactForm.name
+              }
+            >
+              Create Deal
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {toast.show && (
         <Toast
           title={toast.title}
