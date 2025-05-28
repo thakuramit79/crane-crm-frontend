@@ -37,6 +37,7 @@ const LEAD_STATUS_OPTIONS = [
 ];
 
 export function LeadManagement() {
+  const [isLoading, setIsLoading] = useState(true);
   // ... (previous state declarations remain the same)
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
@@ -76,8 +77,6 @@ export function LeadManagement() {
     setSelectedLead(lead);
     setIsConvertModalOpen(true);
   };
-
-  // ... (rest of the component remains the same until the table rendering)
 
   return (
     <div className="space-y-6">
