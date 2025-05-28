@@ -13,7 +13,8 @@ import {
   MessageSquare, 
   PieChart, 
   Settings, 
-  Users, 
+  Users,
+  Building2, 
   X, 
   Plane as Crane 
 } from 'lucide-react';
@@ -48,6 +49,12 @@ const navItems: NavItem[] = [
     icon: <CreditCard size={20} />,
     href: '/quotations',
     roles: ['admin', 'sales_agent'],
+  },
+  {
+    label: 'Customers',
+    icon: <Building2 size={20} />,
+    href: '/customers',
+    roles: ['admin', 'sales_agent', 'operations_manager'],
   },
   {
     label: 'Job Scheduling',
@@ -126,7 +133,6 @@ export function Sidebar() {
   
   return (
     <>
-      {/* Mobile Menu Button */}
       <button
         className="fixed top-4 left-4 z-40 md:hidden bg-white p-2 rounded-md shadow-sm"
         onClick={toggleMobileMenu}
@@ -134,7 +140,6 @@ export function Sidebar() {
         {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
       
-      {/* Mobile Sidebar */}
       <motion.div
         className={`fixed inset-0 z-30 md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'}`}
         initial={{ opacity: 0 }}
@@ -154,7 +159,6 @@ export function Sidebar() {
         </motion.aside>
       </motion.div>
       
-      {/* Desktop Sidebar */}
       <aside 
         className={`hidden md:block ${
           isCollapsed ? 'w-16' : 'w-64'

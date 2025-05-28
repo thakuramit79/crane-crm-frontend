@@ -15,6 +15,7 @@ import { EquipmentManagement } from './pages/EquipmentManagement';
 import { ServicesManagement } from './pages/ServicesManagement';
 import { UserManagement } from './pages/UserManagement';
 import { Configuration } from './pages/Configuration';
+import { Customers } from './pages/Customers';
 import { useAuthStore } from './store/authStore';
 
 function DashboardRouter() {
@@ -42,35 +43,29 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Auth Routes */}
         <Route path="/login" element={<LoginPage />} />
         
-        {/* Protected Routes */}
         <Route path="/" element={<AppShell />}>
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<DashboardRouter />} />
           
-          {/* Lead Management */}
           <Route path="leads" element={<LeadManagement />} />
           <Route path="quotations" element={<QuotationManagement />} />
+          <Route path="customers" element={<Customers />} />
           
-          {/* Job Management */}
           <Route path="jobs" element={<JobScheduling />} />
           <Route path="site-assessment" element={<SiteAssessment />} />
           <Route path="job-summary/:id" element={<JobSummaryFeedback />} />
           
-          {/* Configuration */}
           <Route path="config" element={<Configuration />} />
           <Route path="config/users" element={<UserManagement />} />
           <Route path="config/equipment" element={<EquipmentManagement />} />
           <Route path="config/services" element={<ServicesManagement />} />
           
-          {/* Feedback and Analytics */}
           <Route path="feedback" element={<JobSummaryFeedback />} />
           <Route path="analytics" element={<div className="p-4">Analytics Page</div>} />
         </Route>
         
-        {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>
