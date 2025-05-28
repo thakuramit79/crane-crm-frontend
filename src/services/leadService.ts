@@ -29,6 +29,28 @@ export const getLeads = async (): Promise<Lead[]> => {
   }
 };
 
+export const getLeadById = async (id: string): Promise<Lead | null> => {
+  try {
+    const leadRef = doc(db, 'leads', id);
+    const docSnap = await getDoc(leadRef);
+    
+    if (!docSnap.exists()) {
+      return null;
+    }
+
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...(data as Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>),
+      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+      updatedAt: (data.updatedAt as Timestamp).toDate().toISOString(),
+    } as Lead;
+  } catch (error) {
+    console.error('Error fetching lead:', error);
+    throw error;
+  }
+};
+
 export const createLead = async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> => {
   try {
     const docRef = await addDoc(leadsCollection, {
