@@ -7,6 +7,7 @@ import { Select } from '../components/common/Select';
 import { TextArea } from '../components/common/TextArea';
 import { Modal } from '../components/common/Modal';
 import { Toast } from '../components/common/Toast';
+import { Badge } from '../components/common/Badge';
 import { useAuthStore } from '../store/authStore';
 import { Equipment } from '../types/equipment';
 import { getEquipment, createEquipment, updateEquipment, deleteEquipment } from '../services/firestore/equipmentService';
