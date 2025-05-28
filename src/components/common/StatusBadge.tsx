@@ -12,13 +12,11 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   let variant: any;
   let label: string = status.replace('_', ' ');
   
-  // Capitalize first letter of each word
   label = label
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
   
-  // Determine badge variant based on status
   switch (status) {
     case 'new':
       variant = 'default';
