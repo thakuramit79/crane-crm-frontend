@@ -23,6 +23,8 @@ import { Toast } from '../components/common/Toast';
 import { useNavigate } from 'react-router-dom';
 import { Lead, LeadStatus, Customer, Contact, Deal, DealStatus } from '../types/lead';
 import { getLeads, createLead, updateLeadStatus } from '../services/leadService';
+import { getCustomers, createCustomer, createContact } from '../services/firestore/customerService';
+import { createDeal } from '../services/firestore/dealService';
 
 const LEAD_STATUS_OPTIONS = [
   { value: 'new', label: 'New' },
@@ -101,6 +103,7 @@ export function LeadManagement() {
   const [isExistingCustomer, setIsExistingCustomer] = useState<boolean | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -135,6 +138,7 @@ export function LeadManagement() {
 
   useEffect(() => {
     fetchLeads();
+    fetchCustomers();
   }, []);
 
   useEffect(() => {
@@ -150,6 +154,16 @@ export function LeadManagement() {
       showToast('Error fetching leads', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const data = await getCustomers();
+      setCustomers(data);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      showToast('Error fetching customers', 'error');
     }
   };
 
@@ -250,34 +264,90 @@ export function LeadManagement() {
 
     try {
       let customerId = selectedCustomerId;
-      let contactId = selectedContactId;
+      let contactId: string;
+      let customerData;
 
       if (!isExistingCustomer) {
-        customerId = Math.random().toString(36).substring(2, 9);
-        contactId = Math.random().toString(36).substring(2, 9);
+        // Create new customer
+        customerData = await createCustomer({
+          name: newCustomerForm.name,
+          email: newCustomerForm.email,
+          phone: newCustomerForm.phone,
+          address: newCustomerForm.address,
+        });
+        customerId = customerData.id;
+
+        // Create new contact
+        const contactData = await createContact({
+          customerId: customerData.id,
+          name: newContactForm.name,
+          email: newContactForm.email,
+          phone: newContactForm.phone,
+          role: newContactForm.role,
+        });
+        contactId = contactData.id;
+      } else {
+        contactId = selectedContactId;
+        customerData = customers.find(c => c.id === customerId);
       }
 
-      const newDeal: Deal = {
-        id: Math.random().toString(36).substring(2, 9),
+      if (!customerData) {
+        throw new Error('Customer data not found');
+      }
+
+      const contact = isExistingCustomer 
+        ? contacts[customerId]?.find(c => c.id === contactId)
+        : {
+            name: newContactForm.name,
+            email: newContactForm.email,
+            role: newContactForm.role,
+          };
+
+      if (!contact) {
+        throw new Error('Contact data not found');
+      }
+
+      // Create deal
+      const dealData = {
+        title: `${customerData.name} - ${selectedLead.serviceNeeded}`,
         leadId: selectedLead.id,
         customerId,
         contactId,
-        status: dealForm.status,
+        stage: dealForm.status,
         value: parseFloat(dealForm.value),
         expectedCloseDate: dealForm.expectedCloseDate,
         notes: dealForm.notes,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        customer: {
+          name: customerData.name,
+          email: customerData.email,
+        },
+        contact: {
+          name: contact.name,
+          email: contact.email,
+          role: contact.role,
+        },
       };
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await createDeal(dealData);
+      
+      // Update lead status if not already won
+      if (selectedLead.status !== 'won') {
+        await updateLeadStatus(selectedLead.id, 'won');
+        setLeads(prev => 
+          prev.map(lead => 
+            lead.id === selectedLead.id 
+              ? { ...lead, status: 'won' } 
+              : lead
+          )
+        );
+      }
 
-      showToast('Deal created successfully', 'success');
       setIsConvertModalOpen(false);
       resetConversionForms();
-      
+      showToast('Deal created successfully', 'success');
       navigate('/deals');
     } catch (error) {
+      console.error('Error creating deal:', error);
       showToast('Error creating deal', 'error');
     }
   };
