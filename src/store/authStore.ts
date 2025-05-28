@@ -1,17 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuthState, User } from '../types/auth';
-import { supabase } from '../lib/supabase';
+import { login, getUserFromToken } from '../services/authService';
 
 interface AuthStore extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<boolean>;
+  logout: () => void;
+  checkAuth: () => boolean;
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       isAuthenticated: false,
@@ -20,77 +20,30 @@ export const useAuthStore = create<AuthStore>()(
       login: async (email: string, password: string) => {
         try {
           set({ error: null });
-          
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          
-          if (error) throw error;
-          
-          if (data.user && data.session) {
-            const userMetadata = data.user.user_metadata;
-            
-            const user: User = {
-              id: data.user.id,
-              name: userMetadata.name || data.user.email?.split('@')[0] || '',
-              email: data.user.email!,
-              role: userMetadata.role || 'operator',
-              avatar: userMetadata.avatar,
-            };
-            
-            set({ 
-              token: data.session.access_token,
-              user,
-              isAuthenticated: true,
-            });
-          }
+          const { token, user } = await login(email, password);
+          set({ token, user, isAuthenticated: true });
         } catch (error) {
           set({ error: (error as Error).message });
           throw error;
         }
       },
       
-      logout: async () => {
-        try {
-          await supabase.auth.signOut();
-          set({ token: null, user: null, isAuthenticated: false, error: null });
-        } catch (error) {
-          console.error('Error during logout:', error);
-        }
+      logout: () => {
+        set({ token: null, user: null, isAuthenticated: false, error: null });
       },
       
-      checkAuth: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (!session) {
-            set({ token: null, user: null, isAuthenticated: false });
-            return false;
-          }
-          
-          const userMetadata = session.user.user_metadata;
-          
-          const user: User = {
-            id: session.user.id,
-            name: userMetadata.name || session.user.email?.split('@')[0] || '',
-            email: session.user.email!,
-            role: userMetadata.role || 'operator',
-            avatar: userMetadata.avatar,
-          };
-          
-          set({
-            token: session.access_token,
-            user,
-            isAuthenticated: true,
-          });
-          
-          return true;
-        } catch (error) {
-          console.error('Error checking auth:', error);
+      checkAuth: () => {
+        const { token } = get();
+        if (!token) return false;
+        
+        const user = getUserFromToken(token);
+        if (!user) {
           set({ token: null, user: null, isAuthenticated: false });
           return false;
         }
+        
+        set({ user, isAuthenticated: true });
+        return true;
       },
     }),
     {
