@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Edit2, 
-  Trash2, 
-  Settings,
-  Calendar,
-  Weight,
-  Crane,
-  DollarSign,
-  Truck
-} from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Settings, Calendar, Weight, Plane as Crane, DollarSign, Truck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
