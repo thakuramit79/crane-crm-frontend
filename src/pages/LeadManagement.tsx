@@ -22,8 +22,8 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { Toast } from '../components/common/Toast';
 import { useNavigate } from 'react-router-dom';
 import { Lead, LeadStatus, Customer, Contact, Deal, DealStatus } from '../types/lead';
-import { getLeads, createLead, updateLeadStatus } from '../services/leadService';
-import { getCustomers, createCustomer, createContact } from '../services/firestore/customerService';
+import { getLeads, createLead, updateLeadStatus } from '../services/firestore/leadService';
+import { getCustomers, createCustomer, createContact, getContactsByCustomer } from '../services/firestore/customerService';
 import { createDeal } from '../services/firestore/dealService';
 
 const LEAD_STATUS_OPTIONS = [
@@ -85,6 +85,8 @@ export function LeadManagement() {
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [contacts, setContacts] = useState<Record<string, Contact[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
@@ -103,7 +105,6 @@ export function LeadManagement() {
   const [isExistingCustomer, setIsExistingCustomer] = useState<boolean | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
-  const [customers, setCustomers] = useState<Customer[]>([]);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -142,6 +143,12 @@ export function LeadManagement() {
   }, []);
 
   useEffect(() => {
+    if (selectedCustomerId) {
+      fetchCustomerContacts(selectedCustomerId);
+    }
+  }, [selectedCustomerId]);
+
+  useEffect(() => {
     filterLeads();
   }, [leads, searchTerm, statusFilter]);
 
@@ -149,11 +156,10 @@ export function LeadManagement() {
     try {
       const data = await getLeads();
       setLeads(data);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching leads:', error);
       showToast('Error fetching leads', 'error');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -164,6 +170,19 @@ export function LeadManagement() {
     } catch (error) {
       console.error('Error fetching customers:', error);
       showToast('Error fetching customers', 'error');
+    }
+  };
+
+  const fetchCustomerContacts = async (customerId: string) => {
+    try {
+      const customerContacts = await getContactsByCustomer(customerId);
+      setContacts(prev => ({
+        ...prev,
+        [customerId]: customerContacts
+      }));
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+      showToast('Error fetching contacts', 'error');
     }
   };
 
@@ -772,7 +791,7 @@ export function LeadManagement() {
             <div className="space-y-4">
               <Select
                 label="Select Customer"
-                options={MOCK_CUSTOMERS.map(customer => ({
+                options={customers.map(customer => ({
                   value: customer.id,
                   label: customer.name,
                 }))}
@@ -781,16 +800,13 @@ export function LeadManagement() {
                 required
               />
 
-              {selectedCustomerId && (
+              {selectedCustomerId && contacts[selectedCustomerId] && (
                 <Select
                   label="Select Contact"
-                  options={MOCK_CONTACTS
-                    .filter(contact => contact.customerId === selectedCustomerId)
-                    .map(contact => ({
-                      value: contact.id,
-                      label: contact.name,
-                    }))
-                  }
+                  options={contacts[selectedCustomerId].map(contact => ({
+                    value: contact.id,
+                    label: `${contact.name} (${contact.role})`,
+                  }))}
                   value={selectedContactId}
                   onChange={setSelectedContactId}
                   required
