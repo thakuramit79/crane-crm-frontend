@@ -9,30 +9,51 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { quotationsCollection } from './collections';
-import { Quotation } from '../../types/quotation';
+import { Quotation, QuotationInputs } from '../../types/quotation';
 
-export const createQuotation = async (quotationData: Omit<Quotation, 'id' | 'createdAt' | 'updatedAt' | 'version'>): Promise<Quotation> => {
+export const createQuotation = async (
+  leadId: string,
+  inputs: QuotationInputs,
+  calculations: {
+    baseRate: number;
+    totalHours: number;
+    workingCost: number;
+    elongationCost: number;
+    trailerCost: number;
+    foodAccomCost: number;
+    usageLoadFactor: number;
+    extraCharges: number;
+    riskAdjustment: number;
+    gstAmount: number;
+    totalAmount: number;
+  },
+  createdBy: string
+): Promise<Quotation> => {
   try {
     // Get existing quotations for this lead to determine version
     const existingQuotations = await getDocs(
-      query(quotationsCollection, where('leadId', '==', quotationData.leadId))
+      query(quotationsCollection, where('leadId', '==', leadId))
     );
     const version = existingQuotations.size + 1;
 
-    const docRef = await addDoc(quotationsCollection, {
-      ...quotationData,
+    const quotationData = {
+      leadId,
+      ...inputs,
+      ...calculations,
       version,
+      createdBy,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
+    };
+
+    const docRef = await addDoc(quotationsCollection, quotationData);
 
     return {
-      ...quotationData,
       id: docRef.id,
-      version,
+      ...quotationData,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+    } as Quotation;
   } catch (error) {
     console.error('Error creating quotation:', error);
     throw error;
