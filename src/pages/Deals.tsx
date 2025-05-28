@@ -15,7 +15,7 @@ import { Input } from '../components/common/Input';
 import { Select } from '../components/common/Select';
 import { useAuthStore } from '../store/authStore';
 import { Deal } from '../types/deal';
-import { getDeals, updateDealStage } from '../services/firestore/dealService';
+import { getDeals, updateDealStage } from '../services/dealService';
 
 const STAGE_OPTIONS = [
   { value: 'qualification', label: 'Qualification' },
