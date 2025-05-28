@@ -1,4 +1,6 @@
-import { signUp } from './authService';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth, db } from '../../lib/firebase';
 import { UserRole } from '../../types/auth';
 
 interface InitialUser {
@@ -35,11 +37,46 @@ const INITIAL_USERS: InitialUser[] = [
   },
 ];
 
+// Separate signup logic to avoid circular dependency
+const createInitialUser = async (
+  email: string,
+  password: string,
+  name: string,
+  role: UserRole
+) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const { user: firebaseUser } = userCredential;
+
+    await updateProfile(firebaseUser, { displayName: name });
+
+    const userData = {
+      id: firebaseUser.uid,
+      name,
+      email,
+      role,
+      createdAt: serverTimestamp(),
+    };
+
+    await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+
+    return {
+      id: firebaseUser.uid,
+      name,
+      email,
+      role,
+    };
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+};
+
 export const setupInitialUsers = async () => {
   try {
     for (const user of INITIAL_USERS) {
       try {
-        await signUp(user.email, user.password, user.name, user.role);
+        await createInitialUser(user.email, user.password, user.name, user.role);
         console.log(`Created user: ${user.email}`);
       } catch (error: any) {
         // Skip if user already exists
