@@ -5,9 +5,10 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
-  Timestamp
+  Timestamp 
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Customer, Contact } from '../../types/lead';
@@ -43,20 +44,30 @@ export const createCustomer = async (customer: Omit<Customer, 'id'>): Promise<Cu
   }
 };
 
-export const getCustomerById = async (id: string): Promise<Customer | null> => {
+export const updateCustomer = async (id: string, updates: Partial<Customer>): Promise<Customer> => {
   try {
-    const snapshot = await getDocs(query(collection(db, 'customers'), where('id', '==', id)));
-    if (snapshot.empty) {
-      return null;
-    }
+    const customerRef = doc(db, 'customers', id);
+    await updateDoc(customerRef, {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    });
 
-    const doc = snapshot.docs[0];
     return {
-      id: doc.id,
-      ...doc.data()
+      id,
+      ...updates,
     } as Customer;
   } catch (error) {
-    console.error('Error fetching customer:', error);
+    console.error('Error updating customer:', error);
+    throw error;
+  }
+};
+
+export const deleteCustomer = async (id: string): Promise<void> => {
+  try {
+    const customerRef = doc(db, 'customers', id);
+    await deleteDoc(customerRef);
+  } catch (error) {
+    console.error('Error deleting customer:', error);
     throw error;
   }
 };
@@ -74,6 +85,34 @@ export const createContact = async (contact: Omit<Contact, 'id'>): Promise<Conta
     };
   } catch (error) {
     console.error('Error creating contact:', error);
+    throw error;
+  }
+};
+
+export const updateContact = async (id: string, updates: Partial<Contact>): Promise<Contact> => {
+  try {
+    const contactRef = doc(db, 'contacts', id);
+    await updateDoc(contactRef, {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    });
+
+    return {
+      id,
+      ...updates,
+    } as Contact;
+  } catch (error) {
+    console.error('Error updating contact:', error);
+    throw error;
+  }
+};
+
+export const deleteContact = async (id: string): Promise<void> => {
+  try {
+    const contactRef = doc(db, 'contacts', id);
+    await deleteDoc(contactRef);
+  } catch (error) {
+    console.error('Error deleting contact:', error);
     throw error;
   }
 };
