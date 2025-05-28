@@ -16,7 +16,7 @@ import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
 import { Lead } from '../types/lead';
 import { getLeads } from '../services/firestore/leadService';
-import { createQuotation, getQuotations } from '../services/firestore/quotationService';
+import { createQuotation, getQuotations } from '../services/quotationService';
 
 export function QuotationManagement() {
   const { user } = useAuthStore();
