@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { setupInitialUsers } from '../services/firestore/setupUsers';
 
 const firebaseConfig = {
   apiKey: "AIzaSyABVXrylOIescVfarC8WhtDcDvJa8bxDKU",
@@ -14,3 +15,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Set up initial users
+setupInitialUsers().catch(console.error);
