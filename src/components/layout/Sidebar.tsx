@@ -45,6 +45,12 @@ const navItems: NavItem[] = [
     roles: ['admin', 'sales_agent'],
   },
   {
+    label: 'Deals',
+    icon: <HandshakeIcon size={20} />,
+    href: '/deals',
+    roles: ['admin', 'sales_agent'],
+  },
+  {
     label: 'Quotations',
     icon: <CreditCard size={20} />,
     href: '/quotations',
