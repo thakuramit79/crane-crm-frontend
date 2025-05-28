@@ -67,29 +67,35 @@ const createInitialUser = async (
       role,
     };
   } catch (error) {
+    // Don't log as error if user already exists - this is expected behavior
+    if (error instanceof Error && 'code' in error && error.code === 'auth/email-already-in-use') {
+      console.info(`Skipping user creation: ${email} (already exists)`);
+      return null;
+    }
     console.error('Error creating user:', error);
     throw error;
   }
 };
 
 export const setupInitialUsers = async () => {
+  console.info('Starting initial users setup...');
   try {
     for (const user of INITIAL_USERS) {
       try {
-        await createInitialUser(user.email, user.password, user.name, user.role);
-        console.log(`Created user: ${user.email}`);
-      } catch (error: any) {
-        // Skip if user already exists
-        if (error.code === 'auth/email-already-in-use') {
-          console.log(`User already exists: ${user.email}`);
-          continue;
+        const result = await createInitialUser(user.email, user.password, user.name, user.role);
+        if (result) {
+          console.info(`✓ Created user: ${user.email}`);
         }
-        throw error;
+      } catch (error: any) {
+        // Only throw if it's not the expected "already exists" case
+        if (error.code !== 'auth/email-already-in-use') {
+          throw error;
+        }
       }
     }
-    console.log('Initial users setup completed');
+    console.info('✓ Initial users setup completed successfully');
   } catch (error) {
-    console.error('Error setting up initial users:', error);
+    console.error('❌ Error setting up initial users:', error);
     throw error;
   }
 };
