@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
+import { AlertCircle } from 'lucide-react';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -23,6 +24,8 @@ export function LoginForm() {
       navigate('/dashboard');
     } catch (err) {
       setError((err as Error).message);
+      // Clear password field on error for security
+      setPassword('');
     } finally {
       setIsLoading(false);
     }
@@ -46,8 +49,9 @@ export function LoginForm() {
         </div>
         
         {error && (
-          <div className="bg-error-50 text-error-700 p-3 rounded-md text-sm">
-            {error}
+          <div className="bg-red-50 text-red-700 p-4 rounded-md flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <p className="text-sm">{error}</p>
           </div>
         )}
         
@@ -61,6 +65,7 @@ export function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
             />
             
             <Input
@@ -71,6 +76,7 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </div>
           

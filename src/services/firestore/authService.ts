@@ -3,7 +3,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
-  User as FirebaseUser
+  User as FirebaseUser,
+  AuthError
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
@@ -63,8 +64,24 @@ export const signIn = async (email: string, password: string): Promise<User> => 
       role: userData.role,
     };
   } catch (error) {
-    console.error('Error signing in:', error);
-    throw error;
+    const authError = error as AuthError;
+    console.error('Error signing in:', authError);
+    
+    // Provide more user-friendly error messages
+    switch (authError.code) {
+      case 'auth/invalid-credential':
+        throw new Error('Invalid email or password. Please check your credentials and try again.');
+      case 'auth/user-not-found':
+        throw new Error('No account found with this email address.');
+      case 'auth/wrong-password':
+        throw new Error('Incorrect password. Please try again.');
+      case 'auth/too-many-requests':
+        throw new Error('Too many failed login attempts. Please try again later.');
+      case 'auth/user-disabled':
+        throw new Error('This account has been disabled. Please contact support.');
+      default:
+        throw new Error('An error occurred during sign in. Please try again.');
+    }
   }
 };
 
