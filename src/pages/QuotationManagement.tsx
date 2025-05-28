@@ -9,7 +9,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { Select } from '../common/Select';
+import { Select } from '../components/common/Select';
 import { QuotationForm } from '../components/quotation/QuotationForm';
 import { Modal } from '../components/common/Modal';
 import { Toast } from '../components/common/Toast';
