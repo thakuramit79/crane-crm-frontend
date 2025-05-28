@@ -31,15 +31,6 @@ export interface ToastProps
   isVisible?: boolean;
 }
 
-// Global state for toast
-let toastCallback: ((title: string, variant?: ToastProps['variant'], description?: string) => void) | null = null;
-
-export function showToast(title: string, variant?: ToastProps['variant'], description?: string) {
-  if (toastCallback) {
-    toastCallback(title, variant, description);
-  }
-}
-
 function Toast({
   className,
   variant,
@@ -66,19 +57,6 @@ function Toast({
       return () => clearTimeout(timer);
     }
   }, [isOpen, duration, onClose]);
-
-  useEffect(() => {
-    toastCallback = (newTitle: string, newVariant?: ToastProps['variant'], newDescription?: string) => {
-      setIsOpen(true);
-      props.title = newTitle;
-      if (newVariant) variant = newVariant;
-      if (newDescription) description = newDescription;
-    };
-
-    return () => {
-      toastCallback = null;
-    };
-  }, []);
 
   const handleClose = () => {
     setIsOpen(false);
