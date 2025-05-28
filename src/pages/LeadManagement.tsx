@@ -20,6 +20,7 @@ import { TextArea } from '../components/common/TextArea';
 import { Modal } from '../components/common/Modal';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Toast } from '../components/common/Toast';
+import { useNavigate } from 'react-router-dom';
 import { Lead, LeadStatus, Customer, Contact, Deal, DealStatus } from '../types/lead';
 import { getLeads, createLead, updateLeadStatus } from '../services/leadService';
 
@@ -79,6 +80,7 @@ const MOCK_CONTACTS: Contact[] = [
 const ITEMS_PER_PAGE = 10;
 
 export function LeadManagement() {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -273,8 +275,25 @@ export function LeadManagement() {
       showToast('Deal created successfully', 'success');
       setIsConvertModalOpen(false);
       resetConversionForms();
+      
+      navigate('/deals');
     } catch (error) {
       showToast('Error creating deal', 'error');
+    }
+  };
+
+  const isCreateDealEnabled = () => {
+    if (isExistingCustomer) {
+      return selectedCustomerId && selectedContactId && dealForm.value && dealForm.expectedCloseDate;
+    } else {
+      return (
+        newCustomerForm.name &&
+        newCustomerForm.email &&
+        newContactForm.name &&
+        newContactForm.email &&
+        dealForm.value &&
+        dealForm.expectedCloseDate
+      );
     }
   };
 
@@ -816,11 +835,7 @@ export function LeadManagement() {
             </Button>
             <Button
               onClick={handleConvertToDeal}
-              disabled={
-                isExistingCustomer
-                  ? !selectedCustomerId || !selectedContactId
-                  : !newCustomerForm.name || !newContactForm.name
-              }
+              disabled={!isCreateDealEnabled()}
             >
               Create Deal
             </Button>
