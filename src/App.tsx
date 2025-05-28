@@ -43,7 +43,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login\" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         
         <Route path="/" element={<AppShell />}>
           <Route index element={<Navigate to="/dashboard" />} />
