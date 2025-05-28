@@ -16,7 +16,6 @@ import {
   Users,
   Building2, 
   X, 
-  Plane as Crane,
   Handshake 
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -181,8 +180,11 @@ export function Sidebar() {
       <div className="flex flex-col h-full">
         <div className={`p-4 border-b flex ${collapsed ? 'justify-center' : 'justify-between'} items-center`}>
           <div className={`flex items-center ${collapsed ? '' : 'space-x-2'}`}>
-            <Crane className="h-8 w-8 text-primary-600 flex-shrink-0" />
-            {!collapsed && <span className="text-xl font-bold text-gray-900">ASP Cranes</span>}
+            {collapsed ? (
+              <img src="/crane-icon.svg" alt="ASP Cranes" className="h-8 w-8" />
+            ) : (
+              <img src="https://i.imgur.com/YourLogoImage.png" alt="ASP Cranes" className="h-12" />
+            )}
           </div>
           {!collapsed && (
             <Button
