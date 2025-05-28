@@ -6,6 +6,7 @@ import {
   addDoc,
   updateDoc,
   doc,
+  getDoc,
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore';
@@ -56,32 +57,20 @@ export const updateLeadStatus = async (id: string, status: LeadStatus): Promise<
       updatedAt: serverTimestamp(),
     });
 
-    const updatedLead = await getLeadById(id);
-    return updatedLead;
-  } catch (error) {
-    console.error('Error updating lead status:', error);
-    throw error;
-  }
-};
-
-export const getLeadById = async (id: string): Promise<Lead | null> => {
-  try {
-    const leadRef = doc(db, 'leads', id);
-    const snapshot = await getDocs(query(collection(db, 'leads'), where('id', '==', id)));
-    
-    if (snapshot.empty) {
+    const docSnap = await getDoc(leadRef);
+    if (!docSnap.exists()) {
       return null;
     }
 
-    const doc = snapshot.docs[0];
+    const data = docSnap.data();
     return {
-      id: doc.id,
-      ...doc.data(),
-      createdAt: (doc.data().createdAt as Timestamp).toDate().toISOString(),
-      updatedAt: (doc.data().updatedAt as Timestamp).toDate().toISOString(),
+      id: docSnap.id,
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+      updatedAt: (data.updatedAt as Timestamp).toDate().toISOString(),
     } as Lead;
   } catch (error) {
-    console.error('Error fetching lead:', error);
+    console.error('Error updating lead status:', error);
     throw error;
   }
 };
