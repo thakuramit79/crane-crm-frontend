@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
-import { Plane as Crane } from 'lucide-react';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -34,7 +33,7 @@ export function LoginForm() {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-card">
         <div className="text-center">
           <div className="flex justify-center">
-            <Crane className="h-12 w-12 text-primary-600" />
+            <img src="https://i.imgur.com/YourLogoImage.png" alt="ASP Cranes" className="h-16" />
           </div>
           <h2 className="mt-4 text-3xl font-bold text-gray-900">ASP Cranes CRM</h2>
           <p className="mt-2 text-sm text-gray-500">
