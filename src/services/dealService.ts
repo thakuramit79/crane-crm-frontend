@@ -13,15 +13,21 @@ import { db } from '../lib/firebase';
 import { Deal, DealStage } from '../types/deal';
 import { dealsCollection } from './firestore/collections';
 
+const convertTimestampToISOString = (timestamp: Timestamp | string | null | undefined): string => {
+  if (!timestamp) return new Date().toISOString();
+  if (typeof timestamp === 'string') return timestamp;
+  return timestamp.toDate().toISOString();
+};
+
 export const getDeals = async (): Promise<Deal[]> => {
   try {
     const snapshot = await getDocs(dealsCollection);
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      createdAt: (doc.data().createdAt as Timestamp).toDate().toISOString(),
-      updatedAt: (doc.data().updatedAt as Timestamp).toDate().toISOString(),
-      expectedCloseDate: (doc.data().expectedCloseDate as Timestamp).toDate().toISOString(),
+      createdAt: convertTimestampToISOString(doc.data().createdAt as Timestamp),
+      updatedAt: convertTimestampToISOString(doc.data().updatedAt as Timestamp),
+      expectedCloseDate: convertTimestampToISOString(doc.data().expectedCloseDate as Timestamp),
     } as Deal));
   } catch (error) {
     console.error('Error fetching deals:', error);
@@ -63,13 +69,13 @@ export const updateDealStage = async (id: string, stage: DealStage): Promise<Dea
       return null;
     }
 
-    const doc = snapshot.docs[0];
+    const docData = snapshot.docs[0].data();
     return {
-      id: doc.id,
-      ...doc.data(),
-      createdAt: (doc.data().createdAt as Timestamp).toDate().toISOString(),
-      updatedAt: (doc.data().updatedAt as Timestamp).toDate().toISOString(),
-      expectedCloseDate: (doc.data().expectedCloseDate as Timestamp).toDate().toISOString(),
+      id: snapshot.docs[0].id,
+      ...docData,
+      createdAt: convertTimestampToISOString(docData.createdAt as Timestamp),
+      updatedAt: convertTimestampToISOString(docData.updatedAt as Timestamp),
+      expectedCloseDate: convertTimestampToISOString(docData.expectedCloseDate as Timestamp),
     } as Deal;
   } catch (error) {
     console.error('Error updating deal stage:', error);
@@ -84,13 +90,13 @@ export const getDealById = async (id: string): Promise<Deal | null> => {
       return null;
     }
 
-    const doc = snapshot.docs[0];
+    const docData = snapshot.docs[0].data();
     return {
-      id: doc.id,
-      ...doc.data(),
-      createdAt: (doc.data().createdAt as Timestamp).toDate().toISOString(),
-      updatedAt: (doc.data().updatedAt as Timestamp).toDate().toISOString(),
-      expectedCloseDate: (doc.data().expectedCloseDate as Timestamp).toDate().toISOString(),
+      id: snapshot.docs[0].id,
+      ...docData,
+      createdAt: convertTimestampToISOString(docData.createdAt as Timestamp),
+      updatedAt: convertTimestampToISOString(docData.updatedAt as Timestamp),
+      expectedCloseDate: convertTimestampToISOString(docData.expectedCloseDate as Timestamp),
     } as Deal;
   } catch (error) {
     console.error('Error fetching deal:', error);
