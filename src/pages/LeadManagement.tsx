@@ -24,7 +24,7 @@ import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
 import { Lead, LeadStatus, Customer } from '../types/lead';
 import { getLeads, createLead, updateLeadStatus } from '../services/firestore/leadService';
-import { getCustomers, createCustomer } from '../services/firestore/customerService';
+import { getCustomers } from '../services/firestore/customerService';
 import { createDeal } from '../services/firestore/dealService';
 
 const LEAD_STATUS_OPTIONS = [
@@ -37,8 +37,63 @@ const LEAD_STATUS_OPTIONS = [
 ];
 
 export function LeadManagement() {
+  const { user } = useAuthStore();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
-  // ... (previous state declarations remain the same)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    title: string;
+    description?: string;
+    variant?: 'success' | 'error' | 'warning';
+  }>({ show: false, title: '' });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    filterLeads();
+  }, [leads, searchTerm, statusFilter]);
+
+  const fetchData = async () => {
+    try {
+      const [leadsData, customersData] = await Promise.all([
+        getLeads(),
+        getCustomers()
+      ]);
+      setLeads(leadsData);
+      setCustomers(customersData);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      showToast('Error fetching data', 'error');
+      setIsLoading(false);
+    }
+  };
+
+  const filterLeads = () => {
+    let filtered = [...leads];
+    
+    if (searchTerm) {
+      filtered = filtered.filter(lead => 
+        lead.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.siteLocation.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(lead => lead.status === statusFilter);
+    }
+    
+    setFilteredLeads(filtered);
+  };
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     try {
@@ -68,7 +123,6 @@ export function LeadManagement() {
     if (lead.status !== 'won') {
       showToast(
         'Only won leads can be converted to deals',
-        'Please change the lead status to "Won" first',
         'warning'
       );
       return;
@@ -78,10 +132,55 @@ export function LeadManagement() {
     setIsConvertModalOpen(true);
   };
 
+  const showToast = (
+    title: string,
+    variant: 'success' | 'error' | 'warning' = 'success'
+  ) => {
+    setToast({ show: true, title, variant });
+    setTimeout(() => setToast({ show: false, title: '' }), 3000);
+  };
+
+  if (!user || (user.role !== 'sales_agent' && user.role !== 'admin')) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        You don't have permission to access this page.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* ... (previous JSX remains the same) */}
-      
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 flex-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <Input
+              placeholder="Search leads..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select
+            options={[
+              { value: 'all', label: 'All Status' },
+              ...LEAD_STATUS_OPTIONS
+            ]}
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value as LeadStatus | 'all')}
+            className="w-40"
+          />
+        </div>
+        
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          leftIcon={<Plus size={16} />}
+        >
+          New Lead
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Lead Pipeline</CardTitle>
@@ -166,9 +265,15 @@ export function LeadManagement() {
         </CardContent>
       </Card>
 
-      {/* ... (rest of the component remains the same) */}
+      {/* Toast Notifications */}
+      {toast.show && (
+        <Toast
+          title={toast.title}
+          variant={toast.variant}
+          isVisible={toast.show}
+          onClose={() => setToast({ show: false, title: '' })}
+        />
+      )}
     </div>
   );
 }
-
-export default LeadManagement;
