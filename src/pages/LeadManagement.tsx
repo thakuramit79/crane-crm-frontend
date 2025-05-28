@@ -22,10 +22,8 @@ import { Modal } from '../components/common/Modal';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
-import { Lead, LeadStatus, Customer } from '../types/lead';
+import { Lead, LeadStatus } from '../types/lead';
 import { getLeads, createLead, updateLeadStatus } from '../services/firestore/leadService';
-import { getCustomers } from '../services/firestore/customerService';
-import { createDeal } from '../services/firestore/dealService';
 
 const LEAD_STATUS_OPTIONS = [
   { value: 'new', label: 'New' },
@@ -36,16 +34,26 @@ const LEAD_STATUS_OPTIONS = [
   { value: 'lost', label: 'Lost' },
 ];
 
+const MACHINERY_OPTIONS = [
+  { value: 'mobile_crane', label: 'Mobile Crane' },
+  { value: 'lift_crane', label: 'Lift Crane' },
+  { value: 'pick_and_carry', label: 'Pick & Carry Crane' },
+];
+
+const SHIFT_OPTIONS = [
+  { value: 'day', label: 'Day Shift' },
+  { value: 'night', label: 'Night Shift' },
+  { value: '24x7', label: '24x7' },
+];
+
 export function LeadManagement() {
   const { user } = useAuthStore();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [toast, setToast] = useState<{
     show: boolean;
@@ -54,26 +62,35 @@ export function LeadManagement() {
     variant?: 'success' | 'error' | 'warning';
   }>({ show: false, title: '' });
 
+  const [formData, setFormData] = useState({
+    fullName: '',
+    companyName: '',
+    phoneNumber: '',
+    email: '',
+    machineryType: '',
+    location: '',
+    startDate: '',
+    rentalDays: '',
+    shiftTiming: 'day',
+    notes: '',
+  });
+
   useEffect(() => {
-    fetchData();
+    fetchLeads();
   }, []);
 
   useEffect(() => {
     filterLeads();
   }, [leads, searchTerm, statusFilter]);
 
-  const fetchData = async () => {
+  const fetchLeads = async () => {
     try {
-      const [leadsData, customersData] = await Promise.all([
-        getLeads(),
-        getCustomers()
-      ]);
-      setLeads(leadsData);
-      setCustomers(customersData);
+      const data = await getLeads();
+      setLeads(data);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      showToast('Error fetching data', 'error');
+      console.error('Error fetching leads:', error);
+      showToast('Error fetching leads', 'error');
       setIsLoading(false);
     }
   };
@@ -95,6 +112,57 @@ export function LeadManagement() {
     setFilteredLeads(filtered);
   };
 
+  const handleCreateLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate required fields
+    if (!formData.fullName || !formData.phoneNumber || !formData.email || 
+        !formData.machineryType || !formData.location || !formData.startDate || 
+        !formData.rentalDays) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      showToast('Please enter a valid email address', 'error');
+      return;
+    }
+
+    // Validate phone number (basic validation)
+    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      showToast('Please enter a valid phone number', 'error');
+      return;
+    }
+
+    try {
+      const newLead = await createLead({
+        customerName: formData.fullName,
+        companyName: formData.companyName,
+        email: formData.email,
+        phone: formData.phoneNumber,
+        serviceNeeded: formData.machineryType,
+        siteLocation: formData.location,
+        startDate: formData.startDate,
+        rentalDays: parseInt(formData.rentalDays),
+        shiftTiming: formData.shiftTiming,
+        status: 'new',
+        assignedTo: user?.id || '',
+        notes: formData.notes,
+      });
+
+      setLeads(prev => [...prev, newLead]);
+      setIsCreateModalOpen(false);
+      resetForm();
+      showToast('Lead created successfully', 'success');
+    } catch (error) {
+      console.error('Error creating lead:', error);
+      showToast('Error creating lead', 'error');
+    }
+  };
+
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     try {
       const updatedLead = await updateLeadStatus(leadId, newStatus);
@@ -104,13 +172,6 @@ export function LeadManagement() {
             lead.id === leadId ? updatedLead : lead
           )
         );
-        
-        // Only open convert modal if status is changed to 'won'
-        if (newStatus === 'won') {
-          setSelectedLead(updatedLead);
-          setIsConvertModalOpen(true);
-        }
-        
         showToast('Lead status updated', 'success');
       }
     } catch (error) {
@@ -119,17 +180,19 @@ export function LeadManagement() {
     }
   };
 
-  const handleConvertClick = (lead: Lead) => {
-    if (lead.status !== 'won') {
-      showToast(
-        'Only won leads can be converted to deals',
-        'warning'
-      );
-      return;
-    }
-    
-    setSelectedLead(lead);
-    setIsConvertModalOpen(true);
+  const resetForm = () => {
+    setFormData({
+      fullName: '',
+      companyName: '',
+      phoneNumber: '',
+      email: '',
+      machineryType: '',
+      location: '',
+      startDate: '',
+      rentalDays: '',
+      shiftTiming: 'day',
+      notes: '',
+    });
   };
 
   const showToast = (
@@ -212,9 +275,6 @@ export function LeadManagement() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Created
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -224,6 +284,11 @@ export function LeadManagement() {
                         <div className="font-medium text-gray-900">
                           {lead.customerName}
                         </div>
+                        {lead.companyName && (
+                          <div className="text-sm text-gray-500">
+                            {lead.companyName}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
@@ -246,16 +311,6 @@ export function LeadManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(lead.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <Button
-                          variant={lead.status === 'won' ? 'success' : 'ghost'}
-                          size="sm"
-                          onClick={() => handleConvertClick(lead)}
-                          title={lead.status !== 'won' ? 'Only won leads can be converted to deals' : 'Convert to deal'}
-                        >
-                          <ArrowRight size={16} />
-                        </Button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -264,6 +319,114 @@ export function LeadManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Lead Modal */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          resetForm();
+        }}
+        title="Create New Lead"
+        size="lg"
+      >
+        <form onSubmit={handleCreateLead} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input
+              label="Full Name"
+              value={formData.fullName}
+              onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+              required
+            />
+
+            <Input
+              label="Company Name"
+              value={formData.companyName}
+              onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+              helperText="Optional"
+            />
+
+            <Input
+              label="Phone Number"
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+              required
+            />
+
+            <Input
+              label="Email Address"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              required
+            />
+
+            <Select
+              label="Type of Machinery Needed"
+              options={MACHINERY_OPTIONS}
+              value={formData.machineryType}
+              onChange={(value) => setFormData(prev => ({ ...prev, machineryType: value }))}
+              required
+            />
+
+            <Input
+              label="Location / Site Address"
+              value={formData.location}
+              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+              required
+            />
+
+            <Input
+              label="Start Date"
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+              required
+            />
+
+            <Input
+              label="Number of Rental Days"
+              type="number"
+              min="1"
+              value={formData.rentalDays}
+              onChange={(e) => setFormData(prev => ({ ...prev, rentalDays: e.target.value }))}
+              required
+            />
+
+            <Select
+              label="Shift Timing"
+              options={SHIFT_OPTIONS}
+              value={formData.shiftTiming}
+              onChange={(value) => setFormData(prev => ({ ...prev, shiftTiming: value }))}
+              required
+            />
+          </div>
+
+          <TextArea
+            label="Additional Notes"
+            value={formData.notes}
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            rows={3}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                resetForm();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">
+              Create Lead
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Toast Notifications */}
       {toast.show && (
