@@ -26,8 +26,6 @@ import { getLeads, createLead, updateLeadStatus } from '../services/firestore/le
 import { getCustomers, getContactsByCustomer, createCustomer, createContact } from '../services/firestore/customerService';
 import { createDeal } from '../services/firestore/dealService';
 
-// ... (keep all the existing constants)
-
 export function LeadManagement() {
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -45,8 +43,24 @@ export function LeadManagement() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-
-  // ... (keep all the existing form states)
+  const [newCustomerForm, setNewCustomerForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
+  const [newContactForm, setNewContactForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    role: ''
+  });
+  const [dealForm, setDealForm] = useState({
+    status: 'new' as DealStatus,
+    value: '',
+    expectedCloseDate: '',
+    notes: ''
+  });
 
   useEffect(() => {
     fetchData();
@@ -85,8 +99,6 @@ export function LeadManagement() {
       showToast('Error fetching contacts', 'error');
     }
   };
-
-  // ... (keep all the existing filter and pagination functions)
 
   const handleConvertToDeal = async () => {
     if (!selectedLead) return;
@@ -173,10 +185,35 @@ export function LeadManagement() {
     }
   };
 
-  // ... (keep all the existing helper functions)
+  const resetConversionForms = () => {
+    setIsExistingCustomer(null);
+    setSelectedCustomerId('');
+    setSelectedContactId('');
+    setNewCustomerForm({
+      name: '',
+      email: '',
+      phone: '',
+      address: ''
+    });
+    setNewContactForm({
+      name: '',
+      email: '',
+      phone: '',
+      role: ''
+    });
+    setDealForm({
+      status: 'new',
+      value: '',
+      expectedCloseDate: '',
+      notes: ''
+    });
+  };
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    // Implementation of showing toast notifications
+  };
 
   return (
-    // ... (keep the existing JSX structure, but update the customer selection part in the convert modal)
     <Modal
       isOpen={isConvertModalOpen}
       onClose={() => {
@@ -230,12 +267,169 @@ export function LeadManagement() {
                 required
               />
             )}
+
+            <div className="space-y-4">
+              <Select
+                label="Deal Stage"
+                options={[
+                  { value: 'new', label: 'New' },
+                  { value: 'qualified', label: 'Qualified' },
+                  { value: 'proposal', label: 'Proposal' },
+                  { value: 'negotiation', label: 'Negotiation' },
+                ]}
+                value={dealForm.status}
+                onChange={(value) => setDealForm(prev => ({ ...prev, status: value as DealStatus }))}
+                required
+              />
+              <Input
+                type="number"
+                label="Deal Value"
+                value={dealForm.value}
+                onChange={(e) => setDealForm(prev => ({ ...prev, value: e.target.value }))}
+                required
+              />
+              <Input
+                type="date"
+                label="Expected Close Date"
+                value={dealForm.expectedCloseDate}
+                onChange={(e) => setDealForm(prev => ({ ...prev, expectedCloseDate: e.target.value }))}
+                required
+              />
+              <TextArea
+                label="Notes"
+                value={dealForm.notes}
+                onChange={(e) => setDealForm(prev => ({ ...prev, notes: e.target.value }))}
+              />
+            </div>
           </div>
         ) : (
-          // ... (keep the rest of the modal content)
+          <div className="space-y-4">
+            <div className="space-y-4">
+              <h4 className="font-medium">Customer Information</h4>
+              <Input
+                label="Customer Name"
+                value={newCustomerForm.name}
+                onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+              <Input
+                type="email"
+                label="Customer Email"
+                value={newCustomerForm.email}
+                onChange={(e) => setNewCustomerForm(prev => ({ ...prev, email: e.target.value }))}
+                required
+              />
+              <Input
+                type="tel"
+                label="Customer Phone"
+                value={newCustomerForm.phone}
+                onChange={(e) => setNewCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
+                required
+              />
+              <TextArea
+                label="Customer Address"
+                value={newCustomerForm.address}
+                onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium">Contact Information</h4>
+              <Input
+                label="Contact Name"
+                value={newContactForm.name}
+                onChange={(e) => setNewContactForm(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+              <Input
+                type="email"
+                label="Contact Email"
+                value={newContactForm.email}
+                onChange={(e) => setNewContactForm(prev => ({ ...prev, email: e.target.value }))}
+                required
+              />
+              <Input
+                type="tel"
+                label="Contact Phone"
+                value={newContactForm.phone}
+                onChange={(e) => setNewContactForm(prev => ({ ...prev, phone: e.target.value }))}
+                required
+              />
+              <Input
+                label="Contact Role"
+                value={newContactForm.role}
+                onChange={(e) => setNewContactForm(prev => ({ ...prev, role: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium">Deal Information</h4>
+              <Select
+                label="Deal Stage"
+                options={[
+                  { value: 'new', label: 'New' },
+                  { value: 'qualified', label: 'Qualified' },
+                  { value: 'proposal', label: 'Proposal' },
+                  { value: 'negotiation', label: 'Negotiation' },
+                ]}
+                value={dealForm.status}
+                onChange={(value) => setDealForm(prev => ({ ...prev, status: value as DealStatus }))}
+                required
+              />
+              <Input
+                type="number"
+                label="Deal Value"
+                value={dealForm.value}
+                onChange={(e) => setDealForm(prev => ({ ...prev, value: e.target.value }))}
+                required
+              />
+              <Input
+                type="date"
+                label="Expected Close Date"
+                value={dealForm.expectedCloseDate}
+                onChange={(e) => setDealForm(prev => ({ ...prev, expectedCloseDate: e.target.value }))}
+                required
+              />
+              <TextArea
+                label="Notes"
+                value={dealForm.notes}
+                onChange={(e) => setDealForm(prev => ({ ...prev, notes: e.target.value }))}
+              />
+            </div>
+          </div>
         )}
+
+        <div className="flex justify-end gap-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsConvertModalOpen(false);
+              resetConversionForms();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConvertToDeal}
+            disabled={
+              isExistingCustomer === null ||
+              (isExistingCustomer && (!selectedCustomerId || !selectedContactId)) ||
+              (!isExistingCustomer && (
+                !newCustomerForm.name ||
+                !newCustomerForm.email ||
+                !newContactForm.name ||
+                !newContactForm.email ||
+                !dealForm.value ||
+                !dealForm.expectedCloseDate
+              ))
+            }
+          >
+            Convert to Deal
+          </Button>
+        </div>
       </div>
     </Modal>
-    // ... (keep the rest of the component JSX)
   );
 }
