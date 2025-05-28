@@ -1,91 +1,165 @@
-import React from 'react';
-import { Card } from '../components/common/Card';
+import React, { useState, useEffect } from 'react';
+import { 
+  DollarSign, 
+  Users, 
+  Calendar, 
+  ArrowRight,
+  Search,
+  Plus,
+  Building2
+} from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
-import { DollarSign, Users, Calendar, ArrowRight } from 'lucide-react';
+import { Input } from '../components/common/Input';
+import { Select } from '../components/common/Select';
+import { useAuthStore } from '../store/authStore';
+import { Deal } from '../types/deal';
+import { getDeals, updateDealStage } from '../services/firestore/dealService';
+
+const STAGE_OPTIONS = [
+  { value: 'qualification', label: 'Qualification' },
+  { value: 'proposal', label: 'Proposal' },
+  { value: 'negotiation', label: 'Negotiation' },
+  { value: 'won', label: 'Won' },
+  { value: 'lost', label: 'Lost' },
+];
 
 export function Deals() {
-  const deals = [
-    {
-      id: 1,
-      title: "Commercial Construction Project",
-      client: "ABC Corporation",
-      value: 250000,
-      status: "In Progress",
-      dueDate: "2024-03-15",
-      team: ["John Doe", "Jane Smith", "Bob Wilson"]
-    },
-    {
-      id: 2,
-      title: "Residential Development",
-      client: "XYZ Developers",
-      value: 180000,
-      status: "Pending",
-      dueDate: "2024-04-01",
-      team: ["Alice Johnson", "Mike Brown"]
+  const { user } = useAuthStore();
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stageFilter, setStageFilter] = useState<Deal['stage'] | 'all'>('all');
+
+  useEffect(() => {
+    fetchDeals();
+  }, []);
+
+  const fetchDeals = async () => {
+    try {
+      const data = await getDeals();
+      setDeals(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching deals:', error);
     }
-  ];
+  };
+
+  const handleStageChange = async (dealId: string, newStage: Deal['stage']) => {
+    try {
+      const updatedDeal = await updateDealStage(dealId, newStage);
+      if (updatedDeal) {
+        setDeals(prev => 
+          prev.map(deal => 
+            deal.id === dealId ? updatedDeal : deal
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating deal stage:', error);
+    }
+  };
+
+  const filteredDeals = deals.filter(deal => {
+    const matchesSearch = 
+      deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deal.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStage = stageFilter === 'all' || deal.stage === stageFilter;
+    return matchesSearch && matchesStage;
+  });
+
+  if (!user || (user.role !== 'sales_agent' && user.role !== 'admin')) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        You don't have permission to access this page.
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Deals Overview</h1>
-        <Button variant="primary">
-          Create New Deal
-        </Button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 flex-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <Input
+              placeholder="Search deals..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select
+            options={[
+              { value: 'all', label: 'All Stages' },
+              ...STAGE_OPTIONS
+            ]}
+            value={stageFilter}
+            onChange={(value) => setStageFilter(value as Deal['stage'] | 'all')}
+            className="w-40"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {deals.map((deal) => (
-          <Card key={deal.id} className="hover:shadow-lg transition-shadow">
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{deal.title}</h3>
-                <Badge variant={deal.status === "In Progress" ? "success" : "warning"}>
-                  {deal.status}
-                </Badge>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center text-gray-600">
-                  <DollarSign className="w-5 h-5 mr-2" />
-                  <span>${deal.value.toLocaleString()}</span>
+        {isLoading ? (
+          <div className="col-span-full text-center py-8">Loading deals...</div>
+        ) : filteredDeals.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-gray-500">
+            No deals found.
+          </div>
+        ) : (
+          filteredDeals.map((deal) => (
+            <Card key={deal.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">{deal.title}</h3>
+                  <Select
+                    options={STAGE_OPTIONS}
+                    value={deal.stage}
+                    onChange={(value) => handleStageChange(deal.id, value as Deal['stage'])}
+                    className="w-32"
+                  />
                 </div>
                 
-                <div className="flex items-center text-gray-600">
-                  <Users className="w-5 h-5 mr-2" />
-                  <span>{deal.client}</span>
+                <div className="space-y-3">
+                  <div className="flex items-center text-gray-600">
+                    <DollarSign className="w-5 h-5 mr-2" />
+                    <span>${deal.value.toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="flex items-center text-gray-600">
+                    <Building2 className="w-5 h-5 mr-2" />
+                    <span>{deal.customer.name}</span>
+                  </div>
+                  
+                  <div className="flex items-center text-gray-600">
+                    <Users className="w-5 h-5 mr-2" />
+                    <span>{deal.contact.name}</span>
+                  </div>
+                  
+                  <div className="flex items-center text-gray-600">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    <span>{new Date(deal.expectedCloseDate).toLocaleDateString()}</span>
+                  </div>
                 </div>
                 
-                <div className="flex items-center text-gray-600">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  <span>{new Date(deal.dueDate).toLocaleDateString()}</span>
-                </div>
+                {deal.notes && (
+                  <p className="mt-4 text-sm text-gray-500">{deal.notes}</p>
+                )}
                 
-                <div className="flex -space-x-2">
-                  {deal.team.map((member, index) => (
-                    <div
-                      key={index}
-                      className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center"
-                      title={member}
-                    >
-                      <span className="text-xs font-medium">
-                        {member.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    </div>
-                  ))}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    View Details
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
                 </div>
-              </div>
-              
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <Button variant="text" className="w-full justify-between">
-                  View Details
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );
