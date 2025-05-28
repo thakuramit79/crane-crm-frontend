@@ -4,10 +4,11 @@ import {
   Search, 
   Edit2, 
   Trash2, 
-  AlertCircle,
-  Check,
-  X,
-  Filter,
+  Settings,
+  Calendar,
+  Weight,
+  Crane,
+  DollarSign,
   Truck
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
@@ -18,22 +19,8 @@ import { TextArea } from '../components/common/TextArea';
 import { Modal } from '../components/common/Modal';
 import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
-import { Equipment } from '../types/job';
-import { getAllEquipment } from '../services/jobService';
-
-type AvailabilityStatus = 'available' | 'in_use' | 'maintenance';
-
-interface EquipmentWithStatus extends Equipment {
-  status: AvailabilityStatus;
-}
-
-const EQUIPMENT_TYPES = [
-  { value: 'tower_crane', label: 'Tower Crane' },
-  { value: 'mobile_crane', label: 'Mobile Crane' },
-  { value: 'crawler_crane', label: 'Crawler Crane' },
-  { value: 'excavator', label: 'Excavator' },
-  { value: 'forklift', label: 'Forklift' },
-];
+import { Equipment } from '../types/equipment';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment } from '../services/firestore/equipmentService';
 
 const STATUS_OPTIONS = [
   { value: 'available', label: 'Available' },
@@ -43,14 +30,14 @@ const STATUS_OPTIONS = [
 
 export function EquipmentManagement() {
   const { user } = useAuthStore();
-  const [equipment, setEquipment] = useState<EquipmentWithStatus[]>([]);
-  const [filteredEquipment, setFilteredEquipment] = useState<EquipmentWithStatus[]>([]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<AvailabilityStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | Equipment['status']>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentWithStatus | null>(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [toast, setToast] = useState<{
     show: boolean;
     title: string;
@@ -58,13 +45,16 @@ export function EquipmentManagement() {
     variant?: 'success' | 'error' | 'warning';
   }>({ show: false, title: '' });
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
-    type: '',
+    manufacturingDate: '',
+    registrationDate: '',
+    maxLiftingCapacity: '',
+    unladenWeight: '',
     baseRate: '',
+    runningCostPerKm: '',
     description: '',
-    status: 'available' as AvailabilityStatus,
+    status: 'available' as Equipment['status'],
   });
 
   useEffect(() => {
@@ -77,22 +67,12 @@ export function EquipmentManagement() {
 
   const fetchEquipment = async () => {
     try {
-      const data = await getAllEquipment();
-      // Add mock status for demonstration
-      const withStatus: EquipmentWithStatus[] = data.map(item => ({
-        ...item,
-        status: Math.random() > 0.7 
-          ? 'maintenance'
-          : Math.random() > 0.5 
-            ? 'in_use' 
-            : 'available',
-      }));
-      setEquipment(withStatus);
+      const data = await getEquipment();
+      setEquipment(data);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching equipment:', error);
       showToast('Error fetching equipment', 'error');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -101,8 +81,7 @@ export function EquipmentManagement() {
 
     if (searchTerm) {
       filtered = filtered.filter(item => 
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.type.toLowerCase().includes(searchTerm.toLowerCase())
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -113,34 +92,57 @@ export function EquipmentManagement() {
     setFilteredEquipment(filtered);
   };
 
+  const validateForm = () => {
+    if (!formData.name || !formData.manufacturingDate || !formData.registrationDate || 
+        !formData.maxLiftingCapacity || !formData.unladenWeight || !formData.baseRate || 
+        !formData.runningCostPerKm) {
+      showToast('Please fill in all required fields', 'error');
+      return false;
+    }
+
+    // Validate date formats (YYYY-MM)
+    const dateRegex = /^\d{4}-\d{2}$/;
+    if (!dateRegex.test(formData.manufacturingDate) || !dateRegex.test(formData.registrationDate)) {
+      showToast('Please enter valid dates in YYYY-MM format', 'error');
+      return false;
+    }
+
+    // Validate numeric fields
+    if (isNaN(Number(formData.maxLiftingCapacity)) || isNaN(Number(formData.unladenWeight)) ||
+        isNaN(Number(formData.baseRate)) || isNaN(Number(formData.runningCostPerKm))) {
+      showToast('Please enter valid numbers for numeric fields', 'error');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.type || !formData.baseRate) {
-      showToast('Please fill in all required fields', 'error');
+    if (!validateForm()) {
       return;
     }
 
     try {
-      const newEquipment: EquipmentWithStatus = {
-        id: selectedEquipment?.id || Math.random().toString(36).substring(2, 9),
-        name: formData.name,
-        type: formData.type,
-        description: formData.description,
-        baseRate: parseFloat(formData.baseRate),
-        status: formData.status,
+      const equipmentData = {
+        ...formData,
+        maxLiftingCapacity: Number(formData.maxLiftingCapacity),
+        unladenWeight: Number(formData.unladenWeight),
+        baseRate: Number(formData.baseRate),
+        runningCostPerKm: Number(formData.runningCostPerKm),
       };
 
       if (selectedEquipment) {
-        // Update existing equipment
+        const updatedEquipment = await updateEquipment(selectedEquipment.id, equipmentData);
         setEquipment(prev => 
           prev.map(item => 
-            item.id === selectedEquipment.id ? newEquipment : item
+            item.id === selectedEquipment.id ? { ...item, ...updatedEquipment } : item
           )
         );
         showToast('Equipment updated successfully', 'success');
       } else {
-        // Add new equipment
+        const newEquipment = await createEquipment(equipmentData);
         setEquipment(prev => [...prev, newEquipment]);
         showToast('Equipment added successfully', 'success');
       }
@@ -156,6 +158,7 @@ export function EquipmentManagement() {
     if (!selectedEquipment) return;
 
     try {
+      await deleteEquipment(selectedEquipment.id);
       setEquipment(prev => prev.filter(item => item.id !== selectedEquipment.id));
       setIsDeleteModalOpen(false);
       setSelectedEquipment(null);
@@ -168,8 +171,12 @@ export function EquipmentManagement() {
   const resetForm = () => {
     setFormData({
       name: '',
-      type: '',
+      manufacturingDate: '',
+      registrationDate: '',
+      maxLiftingCapacity: '',
+      unladenWeight: '',
       baseRate: '',
+      runningCostPerKm: '',
       description: '',
       status: 'available',
     });
@@ -182,19 +189,6 @@ export function EquipmentManagement() {
   ) => {
     setToast({ show: true, title, variant });
     setTimeout(() => setToast({ show: false, title: '' }), 3000);
-  };
-
-  const getStatusColor = (status: AvailabilityStatus) => {
-    switch (status) {
-      case 'available':
-        return 'text-success-600 bg-success-50';
-      case 'in_use':
-        return 'text-primary-600 bg-primary-50';
-      case 'maintenance':
-        return 'text-warning-600 bg-warning-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
   };
 
   if (!user || (user.role !== 'operations_manager' && user.role !== 'admin')) {
@@ -225,8 +219,8 @@ export function EquipmentManagement() {
               ...STATUS_OPTIONS,
             ]}
             value={statusFilter}
-            onChange={(value) => setStatusFilter(value as AvailabilityStatus | 'all')}
-            className="w-full sm:w-40"
+            onChange={(value) => setStatusFilter(value as 'all' | Equipment['status'])}
+            className="w-40"
           />
         </div>
 
@@ -241,75 +235,98 @@ export function EquipmentManagement() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Equipment Inventory</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-4">Loading equipment...</div>
-          ) : filteredEquipment.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">
-              No equipment found. Add new equipment to get started.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredEquipment.map((item) => (
-                <Card key={item.id} variant="bordered" className="h-full">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg">{item.name}</h3>
-                        <p className="text-sm text-gray-500">{item.type}</p>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                        {item.status.replace('_', ' ')}
-                      </span>
-                    </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {isLoading ? (
+          <div className="col-span-full text-center py-8">Loading equipment...</div>
+        ) : filteredEquipment.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-gray-500">
+            No equipment found. Add new equipment to get started.
+          </div>
+        ) : (
+          filteredEquipment.map((item) => (
+            <Card key={item.id} variant="bordered">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg">{item.name}</h3>
+                    <Badge variant={
+                      item.status === 'available' ? 'success' :
+                      item.status === 'in_use' ? 'warning' :
+                      'error'
+                    }>
+                      {item.status}
+                    </Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedEquipment(item);
+                        setFormData({
+                          name: item.name,
+                          manufacturingDate: item.manufacturingDate,
+                          registrationDate: item.registrationDate,
+                          maxLiftingCapacity: item.maxLiftingCapacity.toString(),
+                          unladenWeight: item.unladenWeight.toString(),
+                          baseRate: item.baseRate.toString(),
+                          runningCostPerKm: item.runningCostPerKm.toString(),
+                          description: item.description || '',
+                          status: item.status,
+                        });
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <Edit2 size={16} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedEquipment(item);
+                        setIsDeleteModalOpen(true);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                </div>
 
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-600">{item.description}</p>
-                      <p className="mt-2 font-medium">
-                        Base Rate: ${item.baseRate}/hour
-                      </p>
-                    </div>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="h-4 w-4" />
+                    <span>Mfg: {item.manufacturingDate}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="h-4 w-4" />
+                    <span>Reg: {item.registrationDate}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Weight className="h-4 w-4" />
+                    <span>{item.maxLiftingCapacity} tons max lift</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Crane className="h-4 w-4" />
+                    <span>{item.unladenWeight} tons unladen</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <DollarSign className="h-4 w-4" />
+                    <span>${item.baseRate}/hr base rate</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Truck className="h-4 w-4" />
+                    <span>${item.runningCostPerKm}/km running cost</span>
+                  </div>
+                </div>
 
-                    <div className="mt-4 flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedEquipment(item);
-                          setFormData({
-                            name: item.name,
-                            type: item.type,
-                            baseRate: item.baseRate.toString(),
-                            description: item.description,
-                            status: item.status,
-                          });
-                          setIsModalOpen(true);
-                        }}
-                      >
-                        <Edit2 size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedEquipment(item);
-                          setIsDeleteModalOpen(true);
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                {item.description && (
+                  <p className="mt-4 text-sm text-gray-500">{item.description}</p>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
 
       {/* Add/Edit Equipment Modal */}
       <Modal
@@ -329,21 +346,69 @@ export function EquipmentManagement() {
             required
           />
 
-          <Select
-            label="Equipment Type"
-            options={EQUIPMENT_TYPES}
-            value={formData.type}
-            onChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
-            required
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Manufacturing Date (YYYY-MM)"
+              value={formData.manufacturingDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, manufacturingDate: e.target.value }))}
+              placeholder="2024-01"
+              required
+            />
 
-          <Input
-            label="Base Rate (per hour)"
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.baseRate}
-            onChange={(e) => setFormData(prev => ({ ...prev, baseRate: e.target.value }))}
+            <Input
+              label="Registration Date (YYYY-MM)"
+              value={formData.registrationDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, registrationDate: e.target.value }))}
+              placeholder="2024-01"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Max Lifting Capacity (tons)"
+              type="number"
+              step="0.1"
+              value={formData.maxLiftingCapacity}
+              onChange={(e) => setFormData(prev => ({ ...prev, maxLiftingCapacity: e.target.value }))}
+              required
+            />
+
+            <Input
+              label="Unladen Weight (tons)"
+              type="number"
+              step="0.1"
+              value={formData.unladenWeight}
+              onChange={(e) => setFormData(prev => ({ ...prev, unladenWeight: e.target.value }))}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Base Rate (per hour)"
+              type="number"
+              step="0.01"
+              value={formData.baseRate}
+              onChange={(e) => setFormData(prev => ({ ...prev, baseRate: e.target.value }))}
+              required
+            />
+
+            <Input
+              label="Running Cost (per km)"
+              type="number"
+              step="0.01"
+              value={formData.runningCostPerKm}
+              onChange={(e) => setFormData(prev => ({ ...prev, runningCostPerKm: e.target.value }))}
+              required
+            />
+          </div>
+
+          <Select
+            label="Status"
+            options={STATUS_OPTIONS}
+            value={formData.status}
+            onChange={(value) => setFormData(prev => ({ ...prev, status: value as Equipment['status'] }))}
             required
           />
 
@@ -352,14 +417,6 @@ export function EquipmentManagement() {
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={3}
-          />
-
-          <Select
-            label="Availability Status"
-            options={STATUS_OPTIONS}
-            value={formData.status}
-            onChange={(value) => setFormData(prev => ({ ...prev, status: value as AvailabilityStatus }))}
-            required
           />
 
           <div className="flex justify-end gap-3">
