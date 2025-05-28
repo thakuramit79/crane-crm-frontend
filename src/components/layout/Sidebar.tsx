@@ -16,7 +16,8 @@ import {
   Users,
   Building2, 
   X, 
-  Plane as Crane 
+  Plane as Crane,
+  Handshake 
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { motion } from 'framer-motion';
@@ -46,7 +47,7 @@ const navItems: NavItem[] = [
   },
   {
     label: 'Deals',
-    icon: <HandshakeIcon size={20} />,
+    icon: <Handshake size={20} />,
     href: '/deals',
     roles: ['admin', 'sales_agent'],
   },
