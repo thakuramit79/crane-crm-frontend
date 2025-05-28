@@ -1,24 +1,46 @@
 export interface QuotationInputs {
-  baseRate: number;
-  workingHours: number;
-  rentalDays: number;
-  foodCharge: number;
-  accomCharge: number;
-  numResources: number;
-  usagePercent: number;
-  elongationPercent: number;
-  commercialCharge: number;
-  riskPercent: number;
-  incidentalCharge: number;
-  otherCharge: number;
+  orderType: string;
+  machineType: string;
+  workingHours: string;
+  dayNight: string;
+  shift: string;
+  sundayWorking: string;
+  foodResources: string;
+  accomResources: string;
+  usage: string;
+  siteDistance: string;
+  trailerCost: string;
+  mobRelaxation: string;
+  workingCost: string;
+  elongation: string;
+  dealType: string;
+  extraCharge: string;
+  billing: string;
+  riskFactor: string;
+  incidentalCharges: string;
+  otherFactors: string;
+  otherFactorsCharge: string;
 }
 
-export interface Quotation extends QuotationInputs {
+export interface QuotationCalculations {
+  baseRate: number;
+  totalHours: number;
+  workingCost: number;
+  elongationCost: number;
+  trailerCost: number;
+  foodAccomCost: number;
+  usageLoadFactor: number;
+  extraCharges: number;
+  riskAdjustment: number;
+  gstAmount: number;
+  totalAmount: number;
+}
+
+export interface Quotation extends QuotationInputs, QuotationCalculations {
   id: string;
   leadId: string;
-  totalRent: number;
   version: number;
+  createdBy: string;
   createdAt: string;
   updatedAt: string;
-  createdBy: string;
 }
