@@ -24,6 +24,8 @@ import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
 import { Lead, LeadStatus } from '../types/lead';
 import { getLeads, createLead, updateLeadStatus } from '../services/firestore/leadService';
+import { createDeal } from '../services/firestore/dealService';
+import { useNavigate } from 'react-router-dom';
 
 const LEAD_STATUS_OPTIONS = [
   { value: 'new', label: 'New' },
@@ -48,6 +50,7 @@ const SHIFT_OPTIONS = [
 
 export function LeadManagement() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -172,11 +175,55 @@ export function LeadManagement() {
             lead.id === leadId ? updatedLead : lead
           )
         );
+        
+        // If status is changed to 'won', show success message with deal conversion option
+        if (newStatus === 'won') {
+          showToast(
+            'Lead marked as won! Would you like to convert it to a deal?',
+            'success'
+          );
+        }
+        
         showToast('Lead status updated', 'success');
       }
     } catch (error) {
       console.error('Error updating lead status:', error);
       showToast('Error updating lead status', 'error');
+    }
+  };
+
+  const handleConvertToDeal = async (lead: Lead) => {
+    if (lead.status !== 'won') {
+      showToast('Only won leads can be converted to deals', 'warning');
+      return;
+    }
+
+    try {
+      // Create a new deal from the lead
+      const deal = await createDeal({
+        title: `Deal for ${lead.customerName}`,
+        leadId: lead.id,
+        customerId: '', // This will be set in the deals form
+        contactId: '', // This will be set in the deals form
+        stage: 'qualification',
+        value: 0, // This will be set in the deals form
+        expectedCloseDate: new Date().toISOString(),
+        customer: {
+          name: lead.customerName,
+          email: lead.email,
+        },
+        contact: {
+          name: lead.customerName,
+          email: lead.email,
+          role: '',
+        },
+      });
+
+      showToast('Lead converted to deal successfully', 'success');
+      navigate('/deals');
+    } catch (error) {
+      console.error('Error converting lead to deal:', error);
+      showToast('Error converting lead to deal', 'error');
     }
   };
 
@@ -275,6 +322,9 @@ export function LeadManagement() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Created
                     </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -310,6 +360,17 @@ export function LeadManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(lead.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {lead.status === 'won' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleConvertToDeal(lead)}
+                            leftIcon={<ArrowRight size={16} />}
+                          >
+                            Convert to Deal
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
