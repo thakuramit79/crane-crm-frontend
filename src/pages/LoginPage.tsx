@@ -6,7 +6,6 @@ import { Navigate } from 'react-router-dom';
 export function LoginPage() {
   const { isAuthenticated } = useAuthStore();
   
-  // If already authenticated, redirect to dashboard
   if (isAuthenticated) {
     return <Navigate to="/dashboard" />;
   }
