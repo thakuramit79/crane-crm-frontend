@@ -22,9 +22,9 @@ import { Modal } from '../components/common/Modal';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
-import { Lead, LeadStatus } from '../types/lead';
+import { Lead, LeadStatus, Customer } from '../types/lead';
 import { getLeads, createLead, updateLeadStatus } from '../services/firestore/leadService';
-import { createCustomer } from '../services/firestore/customerService';
+import { getCustomers, createCustomer } from '../services/firestore/customerService';
 import { createDeal } from '../services/firestore/dealService';
 
 const LEAD_STATUS_OPTIONS = [
@@ -39,6 +39,7 @@ const LEAD_STATUS_OPTIONS = [
 export function LeadManagement() {
   const { user } = useAuthStore();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
@@ -46,6 +47,7 @@ export function LeadManagement() {
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isExistingCustomer, setIsExistingCustomer] = useState<boolean | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [toast, setToast] = useState<{
     show: boolean;
     title: string;
@@ -78,6 +80,12 @@ export function LeadManagement() {
     fetchLeads();
   }, []);
 
+  useEffect(() => {
+    if (isConvertModalOpen) {
+      fetchCustomers();
+    }
+  }, [isConvertModalOpen]);
+
   const fetchLeads = async () => {
     try {
       const data = await getLeads();
@@ -86,6 +94,16 @@ export function LeadManagement() {
     } catch (error) {
       console.error('Error fetching leads:', error);
       showToast('Error fetching leads', 'error');
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const data = await getCustomers();
+      setCustomers(data);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      showToast('Error fetching customers', 'error');
     }
   };
 
@@ -142,29 +160,39 @@ export function LeadManagement() {
 
     try {
       let customerId: string;
+      let customerData;
       
       if (!isExistingCustomer) {
         // Create new customer
         const newCustomer = await createCustomer(newCustomerForm);
         customerId = newCustomer.id;
+        customerData = newCustomer;
       } else {
-        // Use existing customer ID
-        customerId = 'existing-customer-id'; // Replace with actual selection
+        if (!selectedCustomerId) {
+          showToast('Please select a customer', 'error');
+          return;
+        }
+        customerData = customers.find(c => c.id === selectedCustomerId);
+        customerId = selectedCustomerId;
+      }
+
+      if (!customerData) {
+        throw new Error('Customer data not found');
       }
 
       // Create deal
       const deal = await createDeal({
-        title: dealForm.title,
+        title: dealForm.title || `Deal for ${customerData.name}`,
         leadId: selectedLead.id,
         customerId,
-        contactId: 'primary-contact-id', // Replace with actual contact selection or creation
+        contactId: 'primary-contact-id', // This should be selected from contacts
         stage: 'qualification',
         value: parseFloat(dealForm.value),
         expectedCloseDate: dealForm.expectedCloseDate,
         notes: dealForm.notes,
         customer: {
-          name: isExistingCustomer ? 'Existing Customer' : newCustomerForm.name,
-          email: isExistingCustomer ? 'existing@email.com' : newCustomerForm.email,
+          name: customerData.name,
+          email: customerData.email,
         },
         contact: {
           name: 'Primary Contact',
@@ -175,6 +203,7 @@ export function LeadManagement() {
 
       setIsConvertModalOpen(false);
       showToast('Lead converted to deal successfully', 'success');
+      resetForm();
     } catch (error) {
       console.error('Error converting lead to deal:', error);
       showToast('Error converting lead to deal', 'error');
@@ -202,6 +231,7 @@ export function LeadManagement() {
     });
     setSelectedLead(null);
     setIsExistingCustomer(null);
+    setSelectedCustomerId('');
   };
 
   const showToast = (
@@ -434,12 +464,12 @@ export function LeadManagement() {
             <div className="space-y-4">
               <Select
                 label="Select Customer"
-                options={[
-                  { value: '1', label: 'Sample Customer 1' },
-                  { value: '2', label: 'Sample Customer 2' },
-                ]}
-                value=""
-                onChange={() => {}}
+                options={customers.map(customer => ({
+                  value: customer.id,
+                  label: customer.name,
+                }))}
+                value={selectedCustomerId}
+                onChange={setSelectedCustomerId}
                 required
               />
             </div>
