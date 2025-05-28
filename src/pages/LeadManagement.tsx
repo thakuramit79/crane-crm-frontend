@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { updateLeadStatus } from '../services/leadService';
-import { showToast } from '../components/common/Toast';
+import { Toast, showToast } from '../components/common/Toast';
 import { ConvertToDealModal } from '../components/leads/ConvertToDealModal';
 import { LeadStatus } from '../types/lead';
 
@@ -51,6 +51,8 @@ export function LeadManagement() {
           }}
         />
       )}
+
+      <Toast title="" variant="default" />
     </div>
   );
 }
