@@ -22,7 +22,7 @@ function DashboardRouter() {
   const { user } = useAuthStore();
   
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
   
   switch (user.role) {
@@ -35,7 +35,7 @@ function DashboardRouter() {
     case 'operator':
       return <OperatorDashboard />;
     default:
-      return <Navigate to="/login" />;
+      return <Navigate to="/login" replace />;
   }
 }
 
@@ -43,10 +43,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login\" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         
         <Route path="/" element={<AppShell />}>
-          <Route index element={<Navigate to="/dashboard" />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardRouter />} />
           
           <Route path="leads" element={<LeadManagement />} />
@@ -66,7 +66,7 @@ function App() {
           <Route path="analytics" element={<div className="p-4">Analytics Page</div>} />
         </Route>
         
-        <Route path="*" element={<Navigate to="/dashboard" />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
   );
