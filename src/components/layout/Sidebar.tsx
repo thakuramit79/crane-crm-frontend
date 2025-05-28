@@ -181,9 +181,17 @@ export function Sidebar() {
         <div className={`p-4 border-b flex ${collapsed ? 'justify-center' : 'justify-between'} items-center`}>
           <div className={`flex items-center ${collapsed ? '' : 'space-x-2'}`}>
             {collapsed ? (
-              <img src="/crane-icon.svg\" alt="ASP Cranes\" className="h-8 w-8" />
+              <img 
+                src="/crane-icon.svg" 
+                alt="ASP Cranes" 
+                className="h-8 w-8 object-contain"
+              />
             ) : (
-              <img src="/crane-icon.svg\" alt="ASP Cranes\" className="h-12" />
+              <img 
+                src="/crane-icon.svg" 
+                alt="ASP Cranes" 
+                className="h-12 w-auto object-contain"
+              />
             )}
           </div>
           {!collapsed && (
@@ -216,7 +224,7 @@ export function Sidebar() {
                   {item.icon}
                   {!collapsed && <span>{item.label}</span>}
                   {collapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transform translate-x-2 group-hover:translate-x-0 transition-all">
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transform translate-x-2 group-hover:translate-x-0 transition-all">
                       {item.label}
                     </div>
                   )}

@@ -33,7 +33,11 @@ export function LoginForm() {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-card">
         <div className="text-center">
           <div className="flex justify-center">
-            <img src="/crane-icon.svg" alt="ASP Cranes" className="h-16" />
+            <img 
+              src="/crane-icon.svg" 
+              alt="ASP Cranes" 
+              className="h-16 w-auto object-contain"
+            />
           </div>
           <h2 className="mt-4 text-3xl font-bold text-gray-900">ASP Cranes CRM</h2>
           <p className="mt-2 text-sm text-gray-500">
