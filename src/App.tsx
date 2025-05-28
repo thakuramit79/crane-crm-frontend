@@ -16,6 +16,7 @@ import { ServicesManagement } from './pages/ServicesManagement';
 import { UserManagement } from './pages/UserManagement';
 import { Configuration } from './pages/Configuration';
 import { Customers } from './pages/Customers';
+import { Deals } from './pages/Deals';
 import { useAuthStore } from './store/authStore';
 
 function DashboardRouter() {
@@ -35,7 +36,7 @@ function DashboardRouter() {
     case 'operator':
       return <OperatorDashboard />;
     default:
-      return <Navigate to="/login\" replace />;
+      return <Navigate to="/login" replace />;
   }
 }
 
@@ -46,10 +47,11 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         
         <Route path="/" element={<AppShell />}>
-          <Route index element={<Navigate to="/dashboard\" replace />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardRouter />} />
           
           <Route path="leads" element={<LeadManagement />} />
+          <Route path="deals" element={<Deals />} />
           <Route path="quotations" element={<QuotationManagement />} />
           <Route path="customers" element={<Customers />} />
           
@@ -66,7 +68,7 @@ function App() {
           <Route path="analytics" element={<div className="p-4">Analytics Page</div>} />
         </Route>
         
-        <Route path="*" element={<Navigate to="/dashboard\" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
   );
