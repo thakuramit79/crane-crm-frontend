@@ -5,7 +5,8 @@ import {
   query,
   where,
   serverTimestamp,
-  Timestamp 
+  Timestamp,
+  getDoc 
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { quotationsCollection } from './collections';
@@ -63,12 +64,42 @@ export const createQuotation = async (quotationData: {
       updatedAt: serverTimestamp(),
     });
 
+    const newDocSnapshot = await getDoc(docRef);
+    const newDocData = newDocSnapshot.data();
+
+    if (!newDocData) {
+      throw new Error("Failed to fetch newly created quotation document.");
+    }
+
     return {
       id: docRef.id,
-      ...quotationData,
+      leadId: quotationData.leadId,
+      orderType: quotationData.orderType,
+      machineType: quotationData.machineType,
+      workingHours: quotationData.workingHours,
+      dayNight: quotationData.dayNight,
+      shift: quotationData.shift,
+      sundayWorking: quotationData.sundayWorking,
+      foodResources: quotationData.foodResources,
+      accomResources: quotationData.accomResources,
+      usage: quotationData.usage,
+      siteDistance: quotationData.siteDistance,
+      trailerCost: quotationData.trailerCost,
+      mobRelaxation: quotationData.mobRelaxation,
+      workingCost: quotationData.workingCost,
+      elongation: quotationData.elongation,
+      dealType: quotationData.dealType,
+      extraCharge: quotationData.extraCharge,
+      billing: quotationData.billing,
+      riskFactor: quotationData.riskFactor,
+      incidentalCharges: quotationData.incidentalCharges,
+      otherFactors: quotationData.otherFactors,
+      otherFactorsCharge: quotationData.otherFactorsCharge,
+      calculations: quotationData.calculations,
+      createdBy: quotationData.createdBy,
       version,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: (newDocData.createdAt as Timestamp).toDate().toISOString(),
+      updatedAt: (newDocData.updatedAt as Timestamp).toDate().toISOString(),
     } as Quotation;
   } catch (error) {
     console.error('Error creating quotation:', error);
