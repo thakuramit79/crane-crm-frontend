@@ -10,100 +10,46 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { quotationsCollection } from './collections';
-import { Quotation, QuotationInputs } from '../../types/quotation';
+import { Quotation, QuotationInputs, QuotationCalculations } from '../../types/quotation';
 
-export const createQuotation = async (quotationData: {
-  leadId: string;
-  orderType: string;
-  machineType: string;
-  workingHours: number;
-  dayNight: string;
-  shift: string;
-  sundayWorking: string;
-  foodResources: number;
-  accomResources: number;
-  usage: string;
-  siteDistance: number;
-  trailerCost: number;
-  mobRelaxation: string;
-  workingCost: number;
-  elongation: number;
-  dealType: string;
-  extraCharge: number;
-  billing: string;
-  riskFactor: string;
-  incidentalCharges: number;
-  otherFactors: string;
-  otherFactorsCharge: number;
-  calculations: {
-    baseRate: number;
-    totalHours: number;
-    workingCost: number;
-    elongationCost: number;
-    trailerCost: number;
-    foodAccomCost: number;
-    usageLoadFactor: number;
-    extraCharges: number;
-    riskAdjustment: number;
-    gstAmount: number;
-    totalAmount: number;
-  };
-  createdBy: string;
-}): Promise<Quotation> => {
+export const createQuotation = async (
+  leadId: string,
+  inputs: QuotationInputs,
+  calculations: QuotationCalculations,
+  createdBy: string
+): Promise<Quotation> => {
   try {
     // Get existing quotations for this lead to determine version
     const existingQuotations = await getDocs(
-      query(quotationsCollection, where('leadId', '==', quotationData.leadId))
+      query(quotationsCollection, where('leadId', '==', leadId))
     );
     const version = existingQuotations.size + 1;
 
-    const docRef = await addDoc(quotationsCollection, {
-      ...quotationData,
+    const quotationData = {
+      leadId,
+      ...inputs,
+      calculations,
       version,
+      createdBy,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
+    };
 
-    const newDocSnapshot = await getDoc(docRef);
-    const newDocData = newDocSnapshot.data();
-
-    if (!newDocData) {
-      throw new Error("Failed to fetch newly created quotation document.");
-    }
+    const docRef = await addDoc(quotationsCollection, quotationData);
 
     return {
       id: docRef.id,
-      leadId: quotationData.leadId,
-      orderType: quotationData.orderType,
-      machineType: quotationData.machineType,
-      workingHours: quotationData.workingHours,
-      dayNight: quotationData.dayNight,
-      shift: quotationData.shift,
-      sundayWorking: quotationData.sundayWorking,
-      foodResources: quotationData.foodResources,
-      accomResources: quotationData.accomResources,
-      usage: quotationData.usage,
-      siteDistance: quotationData.siteDistance,
-      trailerCost: quotationData.trailerCost,
-      mobRelaxation: quotationData.mobRelaxation,
-      workingCost: quotationData.workingCost,
-      elongation: quotationData.elongation,
-      dealType: quotationData.dealType,
-      extraCharge: quotationData.extraCharge,
-      billing: quotationData.billing,
-      riskFactor: quotationData.riskFactor,
-      incidentalCharges: quotationData.incidentalCharges,
-      otherFactors: quotationData.otherFactors,
-      otherFactorsCharge: quotationData.otherFactorsCharge,
-      calculations: quotationData.calculations,
-      createdBy: quotationData.createdBy,
+      ...inputs,
+      leadId,
       version,
-      createdAt: (newDocData.createdAt as Timestamp).toDate().toISOString(),
-      updatedAt: (newDocData.updatedAt as Timestamp).toDate().toISOString(),
-    } as Quotation;
+      createdBy,
+      calculations,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
   } catch (error) {
     console.error('Error creating quotation:', error);
-    throw error;
+    throw new Error('Failed to create quotation');
   }
 };
 
@@ -121,6 +67,6 @@ export const getQuotationsForLead = async (leadId: string): Promise<Quotation[]>
     } as Quotation));
   } catch (error) {
     console.error('Error fetching quotations:', error);
-    throw error;
+    throw new Error('Failed to fetch quotations');
   }
 };

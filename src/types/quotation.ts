@@ -1,25 +1,25 @@
 export interface QuotationInputs {
   orderType: string;
   machineType: string;
-  workingHours: number; // Changed
+  workingHours: number;
   dayNight: string;
   shift: string;
   sundayWorking: string;
-  foodResources: number; // Changed
-  accomResources: number; // Changed
+  foodResources: number;
+  accomResources: number;
   usage: string;
-  siteDistance: number; // Changed
-  trailerCost: number; // Changed
+  siteDistance: number;
+  trailerCost: number;
   mobRelaxation: string;
-  workingCost: number; // Changed
-  elongation: number; // Changed
+  workingCost: number;
+  elongation: number;
   dealType: string;
-  extraCharge: number; // Changed
+  extraCharge: number;
   billing: string;
   riskFactor: string;
-  incidentalCharges: number; // Changed
+  incidentalCharges: number;
   otherFactors: string;
-  otherFactorsCharge: number; // Changed
+  otherFactorsCharge: number;
 }
 
 export interface QuotationCalculations {
