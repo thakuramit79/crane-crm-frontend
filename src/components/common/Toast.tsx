@@ -50,3 +50,5 @@ export const showToast = (message: string, type: ToastProps['type']) => {
 };
 
 export default Toast;
+
+export { Toast }
