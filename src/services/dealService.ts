@@ -35,7 +35,7 @@ export const getDeals = async (): Promise<Deal[]> => {
   }
 };
 
-export const createDeal = async (dealData: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'>): Promise<Deal> => {
+const createDeal = async (dealData: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'>): Promise<Deal> => {
   try {
     const docRef = await addDoc(dealsCollection, {
       ...dealData,
@@ -83,7 +83,7 @@ export const updateDealStage = async (id: string, stage: DealStage): Promise<Dea
   }
 };
 
-export const getDealById = async (id: string): Promise<Deal | null> => {
+const getDealById = async (id: string): Promise<Deal | null> => {
   try {
     const snapshot = await getDocs(query(collection(db, 'deals'), where('id', '==', id)));
     if (snapshot.empty) {

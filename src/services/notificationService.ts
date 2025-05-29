@@ -58,7 +58,7 @@ export const markNotificationAsRead = async (id: string): Promise<Notification |
 };
 
 // Create notification
-export const createNotification = async (
+const createNotification = async (
   notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
 ): Promise<Notification> => {
   // Simulate API delay
@@ -76,7 +76,7 @@ export const createNotification = async (
 };
 
 // Get unread notifications count
-export const getUnreadNotificationCount = async (userId: string): Promise<number> => {
+const getUnreadNotificationCount = async (userId: string): Promise<number> => {
   const notifications = await getUserNotifications(userId);
   return notifications.filter(n => !n.read).length;
 };

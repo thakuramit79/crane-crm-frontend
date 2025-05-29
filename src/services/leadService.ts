@@ -51,7 +51,7 @@ export const getLeadById = async (id: string): Promise<Lead | null> => {
   }
 };
 
-export const createLead = async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> => {
+const createLead = async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> => {
   try {
     const docRef = await addDoc(leadsCollection, {
       ...lead,
@@ -71,7 +71,7 @@ export const createLead = async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedA
   }
 };
 
-export const updateLeadStatus = async (id: string, status: LeadStatus): Promise<Lead | null> => {
+const updateLeadStatus = async (id: string, status: LeadStatus): Promise<Lead | null> => {
   try {
     const leadRef = doc(db, 'leads', id);
     await updateDoc(leadRef, {

@@ -2,7 +2,7 @@ import { Job, JobStatus, Equipment, Operator } from '../types/job';
 import { getLeadById } from './leadService';
 
 // Mock Equipment data
-export const MOCK_EQUIPMENT: Equipment[] = [
+const MOCK_EQUIPMENT: Equipment[] = [
   {
     id: '1',
     name: 'Tower Crane TC-50',
@@ -41,7 +41,7 @@ export const MOCK_EQUIPMENT: Equipment[] = [
 ];
 
 // Mock Operator data
-export const MOCK_OPERATORS: Operator[] = [
+const MOCK_OPERATORS: Operator[] = [
   {
     id: '1',
     name: 'Mike Operator',
@@ -144,7 +144,7 @@ export const createJob = async (jobData: Omit<Job, 'id' | 'createdAt' | 'updated
 };
 
 // Update job
-export const updateJob = async (id: string, updates: Partial<Job>): Promise<Job | null> => {
+const updateJob = async (id: string, updates: Partial<Job>): Promise<Job | null> => {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 600));
   
@@ -174,7 +174,7 @@ export const getEquipmentById = async (id: string): Promise<Equipment | null> =>
 };
 
 // Get operator by ID
-export const getOperatorById = async (id: string): Promise<Operator | null> => {
+const getOperatorById = async (id: string): Promise<Operator | null> => {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 200));
   const operator = MOCK_OPERATORS.find(o => o.id === id);

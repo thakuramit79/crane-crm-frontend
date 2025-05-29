@@ -11,7 +11,7 @@ import { auth, db } from '../../lib/firebase';
 import { User, UserRole } from '../../types/auth';
 import { usersCollection } from './collections';
 
-export const signUp = async (
+const signUp = async (
   email: string,
   password: string,
   name: string,
@@ -116,7 +116,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
   }
 };
 
-export const updateUserProfile = async (
+const updateUserProfile = async (
   userId: string,
   updates: Partial<User>
 ): Promise<User> => {

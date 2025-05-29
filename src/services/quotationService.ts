@@ -68,7 +68,7 @@ const MOCK_QUOTATIONS: Quotation[] = [
 ];
 
 // Calculate total rent based on the formula
-export const calculateTotalRent = (inputs: QuotationInputs): number => {
+const calculateTotalRent = (inputs: QuotationInputs): number => {
   const {
     baseRate,
     workingHours,
@@ -116,7 +116,7 @@ export const getQuotationsForLead = async (leadId: string): Promise<Quotation[]>
 };
 
 // Get quotation by ID
-export const getQuotationById = async (id: string): Promise<Quotation | null> => {
+const getQuotationById = async (id: string): Promise<Quotation | null> => {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 300));
   const quotation = MOCK_QUOTATIONS.find(q => q.id === id);
@@ -156,7 +156,7 @@ export const createQuotation = async (
 };
 
 // Update quotation
-export const updateQuotation = async (
+const updateQuotation = async (
   id: string,
   updates: Partial<QuotationInputs>
 ): Promise<Quotation | null> => {

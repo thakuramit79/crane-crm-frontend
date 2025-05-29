@@ -1,11 +1,11 @@
 import React from 'react';
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
 }
 
-export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
   label?: string;
   options: SelectOption[];
   error?: string;
