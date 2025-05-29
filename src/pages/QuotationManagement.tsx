@@ -280,7 +280,7 @@ export function QuotationManagement() {
       const quotationData = {
         leadId: selectedLead.id,
         ...formData,
-        ...calculations,
+        calculations: calculations,
         createdBy: user?.id || '',
       };
 
