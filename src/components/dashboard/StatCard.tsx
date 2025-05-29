@@ -22,7 +22,7 @@ const statCardVariants = cva(
   }
 );
 
-export interface StatCardProps
+interface StatCardProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof statCardVariants> {
   title: string;

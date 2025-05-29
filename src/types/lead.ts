@@ -1,6 +1,6 @@
 export type LeadStatus = 'new' | 'in_process' | 'qualified' | 'unqualified' | 'won' | 'lost';
 
-export type DealStatus = 'qualification' | 'proposal' | 'negotiation' | 'won' | 'lost';
+type DealStatus = 'qualification' | 'proposal' | 'negotiation' | 'won' | 'lost';
 
 export interface Customer {
   id: string;
@@ -19,7 +19,7 @@ export interface Contact {
   role: string;
 }
 
-export interface Deal {
+interface Deal {
   id: string;
   leadId: string;
   customerId: string;

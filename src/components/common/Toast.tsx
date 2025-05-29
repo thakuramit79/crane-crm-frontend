@@ -21,7 +21,7 @@ const toastVariants = cva(
   }
 );
 
-export interface ToastProps
+interface ToastProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof toastVariants> {
   title: string;
@@ -115,4 +115,4 @@ function Toast({
   );
 }
 
-export { Toast, toastVariants };
+export { Toast,  };
