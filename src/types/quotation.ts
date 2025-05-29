@@ -36,11 +36,12 @@ export interface QuotationCalculations {
   totalAmount: number;
 }
 
-export interface Quotation extends QuotationInputs, QuotationCalculations {
+export interface Quotation extends QuotationInputs {
   id: string;
   leadId: string;
   version: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  calculations: QuotationCalculations;
 }

@@ -11,9 +11,29 @@ import { db } from '../../lib/firebase';
 import { quotationsCollection } from './collections';
 import { Quotation, QuotationInputs } from '../../types/quotation';
 
-export const createQuotation = async (
-  leadId: string,
-  inputs: QuotationInputs,
+export const createQuotation = async (quotationData: {
+  leadId: string;
+  orderType: string;
+  machineType: string;
+  workingHours: string;
+  dayNight: string;
+  shift: string;
+  sundayWorking: string;
+  foodResources: string;
+  accomResources: string;
+  usage: string;
+  siteDistance: string;
+  trailerCost: string;
+  mobRelaxation: string;
+  workingCost: string;
+  elongation: string;
+  dealType: string;
+  extraCharge: string;
+  billing: string;
+  riskFactor: string;
+  incidentalCharges: string;
+  otherFactors: string;
+  otherFactorsCharge: string;
   calculations: {
     baseRate: number;
     totalHours: number;
@@ -26,31 +46,27 @@ export const createQuotation = async (
     riskAdjustment: number;
     gstAmount: number;
     totalAmount: number;
-  },
-  createdBy: string
-): Promise<Quotation> => {
+  };
+  createdBy: string;
+}): Promise<Quotation> => {
   try {
     // Get existing quotations for this lead to determine version
     const existingQuotations = await getDocs(
-      query(quotationsCollection, where('leadId', '==', leadId))
+      query(quotationsCollection, where('leadId', '==', quotationData.leadId))
     );
     const version = existingQuotations.size + 1;
 
-    const quotationData = {
-      leadId,
-      ...inputs,
-      ...calculations,
+    const docRef = await addDoc(quotationsCollection, {
+      ...quotationData,
       version,
-      createdBy,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    };
-
-    const docRef = await addDoc(quotationsCollection, quotationData);
+    });
 
     return {
       id: docRef.id,
       ...quotationData,
+      version,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } as Quotation;
