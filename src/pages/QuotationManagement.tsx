@@ -277,9 +277,23 @@ export function QuotationManagement() {
     }
 
     try {
+      const parsedFormData = {
+        ...formData,
+        workingHours: parseFloat(formData.workingHours) || 0,
+        foodResources: parseFloat(formData.foodResources) || 0,
+        accomResources: parseFloat(formData.accomResources) || 0,
+        siteDistance: parseFloat(formData.siteDistance) || 0,
+        trailerCost: parseFloat(formData.trailerCost) || 0,
+        workingCost: parseFloat(formData.workingCost) || 0,
+        elongation: parseFloat(formData.elongation) || 0,
+        extraCharge: parseFloat(formData.extraCharge) || 0,
+        incidentalCharges: parseFloat(formData.incidentalCharges) || 0,
+        otherFactorsCharge: parseFloat(formData.otherFactorsCharge) || 0,
+      };
+
       const quotationData = {
         leadId: selectedLead.id,
-        ...formData,
+        ...parsedFormData,
         calculations: calculations,
         createdBy: user?.id || '',
       };
